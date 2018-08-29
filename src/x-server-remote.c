@@ -19,7 +19,7 @@ struct XServerRemotePrivate
     guint display_number;
 };
 
-G_DEFINE_TYPE (XServerRemote, x_server_remote, X_SERVER_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (XServerRemote, x_server_remote, X_SERVER_TYPE)
 
 XServerRemote *
 x_server_remote_new (const gchar *hostname, guint number, XAuthority *authority)
@@ -52,6 +52,4 @@ x_server_remote_class_init (XServerRemoteClass *klass)
     XServerClass *x_server_class = X_SERVER_CLASS (klass);  
 
     x_server_class->get_display_number = x_server_remote_get_display_number;
-
-    g_type_class_add_private (klass, sizeof (XServerRemotePrivate));
 }

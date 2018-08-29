@@ -23,7 +23,7 @@ struct GreeterSessionPrivate
     Greeter *greeter;
 };
 
-G_DEFINE_TYPE (GreeterSession, greeter_session, SESSION_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (GreeterSession, greeter_session, SESSION_TYPE)
 
 GreeterSession *
 greeter_session_new (void)
@@ -112,6 +112,4 @@ greeter_session_class_init (GreeterSessionClass *klass)
     session_class->start = greeter_session_start;
     session_class->stop = greeter_session_stop;
     object_class->finalize = greeter_session_finalize;
-
-    g_type_class_add_private (klass, sizeof (GreeterSessionPrivate));
 }

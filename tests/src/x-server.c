@@ -12,9 +12,6 @@
 
 #include "x-server.h"
 
-G_DEFINE_TYPE (XServer, x_server, G_TYPE_OBJECT)
-G_DEFINE_TYPE (XClient, x_client, G_TYPE_OBJECT)
-
 #define MAXIMUM_REQUEST_LENGTH 65535
 
 enum {
@@ -35,12 +32,16 @@ struct XServerPrivate
     GHashTable *clients;
 };
 
+G_DEFINE_TYPE_WITH_PRIVATE (XServer, x_server, G_TYPE_OBJECT)
+
 struct XClientPrivate
 {
     XServer *server;
     GSocket *socket;
     GIOChannel *channel;
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE (XClient, x_client, G_TYPE_OBJECT)
 
 enum
 {
@@ -82,8 +83,6 @@ x_client_init (XClient *client)
 static void
 x_client_class_init (XClientClass *klass)
 {
-    g_type_class_add_private (klass, sizeof (XClientPrivate));
-
     x_client_signals[X_CLIENT_DISCONNECTED] =
         g_signal_new (X_CLIENT_SIGNAL_DISCONNECTED,
                       G_TYPE_FROM_CLASS (klass),
@@ -198,8 +197,9 @@ static void
 x_server_class_init (XServerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
     object_class->finalize = x_server_finalize;
-    g_type_class_add_private (klass, sizeof (XServerPrivate));
+
     x_server_signals[X_SERVER_CLIENT_CONNECTED] =
         g_signal_new (X_SERVER_SIGNAL_CLIENT_CONNECTED,
                       G_TYPE_FROM_CLASS (klass),

@@ -51,7 +51,7 @@ struct XDMCPServerPrivate
     GHashTable *sessions;
 };
 
-G_DEFINE_TYPE (XDMCPServer, xdmcp_server, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XDMCPServer, xdmcp_server, G_TYPE_OBJECT)
 
 /* Maximum number of milliseconds client will resend manage requests before giving up */
 #define MANAGE_TIMEOUT 126000
@@ -817,8 +817,6 @@ xdmcp_server_class_init (XDMCPServerClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = xdmcp_server_finalize;
-
-    g_type_class_add_private (klass, sizeof (XDMCPServerPrivate));
 
     signals[NEW_SESSION] =
         g_signal_new (XDMCP_SERVER_SIGNAL_NEW_SESSION,

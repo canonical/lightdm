@@ -9,8 +9,6 @@
 #include "x-common.h"
 #include "xdmcp-client.h"
 
-G_DEFINE_TYPE (XDMCPClient, xdmcp_client, G_TYPE_OBJECT)
-
 #define MAXIMUM_REQUEST_LENGTH 65535
 
 typedef enum
@@ -41,6 +39,8 @@ struct XDMCPClientPrivate
     gint authorization_data_length;
     guint8 *authorization_data;
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE (XDMCPClient, xdmcp_client, G_TYPE_OBJECT)
 
 enum {
     XDMCP_CLIENT_WILLING,
@@ -469,8 +469,9 @@ static void
 xdmcp_client_class_init (XDMCPClientClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
     object_class->finalize = xdmcp_client_finalize;
-    g_type_class_add_private (klass, sizeof (XDMCPClientPrivate));
+
     xdmcp_client_signals[XDMCP_CLIENT_WILLING] =
         g_signal_new (XDMCP_CLIENT_SIGNAL_WILLING,
                       G_TYPE_FROM_CLASS (klass),

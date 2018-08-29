@@ -166,7 +166,7 @@ typedef struct
     gboolean cancelling_authentication;
 } LightDMGreeterPrivate;
 
-G_DEFINE_TYPE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterPrivate)
 
@@ -1896,8 +1896,6 @@ static void
 lightdm_greeter_class_init (LightDMGreeterClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    g_type_class_add_private (klass, sizeof (LightDMGreeterPrivate));
 
     object_class->set_property = lightdm_greeter_set_property;
     object_class->get_property = lightdm_greeter_get_property;

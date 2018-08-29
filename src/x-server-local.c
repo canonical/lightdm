@@ -71,6 +71,7 @@ struct XServerLocalPrivate
 static void x_server_local_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (XServerLocal, x_server_local, X_SERVER_TYPE,
+                         G_ADD_PRIVATE (XServerLocal)
                          G_IMPLEMENT_INTERFACE (LOGGER_TYPE, x_server_local_logger_iface_init))
 
 static gchar *version = NULL;
@@ -577,8 +578,6 @@ x_server_local_class_init (XServerLocalClass *klass)
     display_server_class->start = klass->start = x_server_local_start;
     display_server_class->stop = x_server_local_stop;
     object_class->finalize = x_server_local_finalize;
-
-    g_type_class_add_private (klass, sizeof (XServerLocalPrivate));
 }
 
 static gint

@@ -22,7 +22,7 @@ struct UserPrivate
     CommonUser *common_user;
 };
 
-G_DEFINE_TYPE (User, user, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (User, user, G_TYPE_OBJECT)
 
 User *
 accounts_get_user_by_name (const gchar *username)
@@ -133,6 +133,4 @@ user_class_init (UserClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = user_finalize;
-
-    g_type_class_add_private (klass, sizeof (UserPrivate));
 }

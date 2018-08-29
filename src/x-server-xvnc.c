@@ -29,7 +29,7 @@ struct XServerXVNCPrivate
     gint width, height, depth;
 };
 
-G_DEFINE_TYPE (XServerXVNC, x_server_xvnc, X_SERVER_LOCAL_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (XServerXVNC, x_server_xvnc, X_SERVER_LOCAL_TYPE)
 
 XServerXVNC *
 x_server_xvnc_new (void)
@@ -134,6 +134,4 @@ x_server_xvnc_class_init (XServerXVNCClass *klass)
     x_server_local_class->get_log_stdout = x_server_xvnc_get_log_stdout;
     x_server_local_class->add_args = x_server_xvnc_add_args;
     display_server_class->get_can_share = x_server_xvnc_get_can_share;
-
-    g_type_class_add_private (klass, sizeof (XServerXVNCPrivate));
 }

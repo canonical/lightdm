@@ -23,7 +23,7 @@ struct SeatXDMCPSessionPrivate
     XServerRemote *x_server;
 };
 
-G_DEFINE_TYPE (SeatXDMCPSession, seat_xdmcp_session, SEAT_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (SeatXDMCPSession, seat_xdmcp_session, SEAT_TYPE)
 
 SeatXDMCPSession *
 seat_xdmcp_session_new (XDMCPSession *session)
@@ -77,6 +77,4 @@ seat_xdmcp_session_class_init (SeatXDMCPSessionClass *klass)
 
     seat_class->create_display_server = seat_xdmcp_session_create_display_server;
     object_class->finalize = seat_xdmcp_session_finalize;
-
-    g_type_class_add_private (klass, sizeof (SeatXDMCPSessionPrivate));
 }

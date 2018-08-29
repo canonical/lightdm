@@ -66,7 +66,7 @@ struct ProcessPrivate
     guint watch;
 };
 
-G_DEFINE_TYPE (Process, process, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (Process, process, G_TYPE_OBJECT)
 
 static Process *current_process = NULL;
 static GHashTable *processes = NULL;
@@ -411,8 +411,6 @@ process_class_init (ProcessClass *klass)
 
     klass->stopped = process_stopped;
     object_class->finalize = process_finalize;
-
-    g_type_class_add_private (klass, sizeof (ProcessPrivate));
 
     signals[GOT_DATA] =
         g_signal_new (PROCESS_SIGNAL_GOT_DATA,

@@ -42,7 +42,7 @@ struct DisplayManagerPrivate
     gboolean stopped;
 };
 
-G_DEFINE_TYPE (DisplayManager, display_manager, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (DisplayManager, display_manager, G_TYPE_OBJECT)
 
 DisplayManager *
 display_manager_new (void)
@@ -184,8 +184,6 @@ display_manager_class_init (DisplayManagerClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = display_manager_finalize;
-
-    g_type_class_add_private (klass, sizeof (DisplayManagerPrivate));
 
     signals[SEAT_ADDED] =
         g_signal_new (DISPLAY_MANAGER_SIGNAL_SEAT_ADDED,

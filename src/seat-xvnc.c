@@ -15,8 +15,6 @@
 #include "x-server-xvnc.h"
 #include "configuration.h"
 
-G_DEFINE_TYPE (SeatXVNC, seat_xvnc, SEAT_TYPE)
-
 struct SeatXVNCPrivate
 {
     /* VNC connection */
@@ -25,6 +23,8 @@ struct SeatXVNCPrivate
     /* X server using VNC connection */
     XServerXVNC *x_server;
 };
+
+G_DEFINE_TYPE_WITH_PRIVATE (SeatXVNC, seat_xvnc, SEAT_TYPE)
 
 SeatXVNC *seat_xvnc_new (GSocket *connection)
 {
@@ -125,6 +125,4 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
     seat_class->create_display_server = seat_xvnc_create_display_server;
     seat_class->run_script = seat_xvnc_run_script;
     object_class->finalize = seat_xvnc_session_finalize;
-
-    g_type_class_add_private (klass, sizeof (SeatXVNCPrivate));
 }

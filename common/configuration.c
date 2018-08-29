@@ -32,7 +32,7 @@ typedef enum
     KEY_DEPRECATED
 } KeyStatus;
 
-G_DEFINE_TYPE (Configuration, config, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (Configuration, config, G_TYPE_OBJECT)
 
 static Configuration *configuration_instance = NULL;
 
@@ -429,6 +429,4 @@ config_class_init (ConfigurationClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = config_finalize;
-
-    g_type_class_add_private (klass, sizeof (ConfigurationPrivate));
 }

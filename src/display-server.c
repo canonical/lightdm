@@ -35,6 +35,7 @@ struct DisplayServerPrivate
 static void display_server_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (DisplayServer, display_server, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (DisplayServer)
                          G_IMPLEMENT_INTERFACE (LOGGER_TYPE, display_server_logger_iface_init))
 
 const gchar *
@@ -167,8 +168,6 @@ display_server_class_init (DisplayServerClass *klass)
     klass->connect_session = display_server_real_connect_session;
     klass->disconnect_session = display_server_real_disconnect_session;
     klass->stop = display_server_real_stop;
-
-    g_type_class_add_private (klass, sizeof (DisplayServerPrivate));
 
     signals[READY] =
         g_signal_new (DISPLAY_SERVER_SIGNAL_READY,

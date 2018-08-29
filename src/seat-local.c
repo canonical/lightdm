@@ -35,7 +35,7 @@ struct SeatLocalPrivate
     XServerLocal *xdmcp_x_server;
 };
 
-G_DEFINE_TYPE (SeatLocal, seat_local, SEAT_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (SeatLocal, seat_local, SEAT_TYPE)
 
 static XServerLocal *create_x_server (SeatLocal *seat);
 
@@ -462,6 +462,4 @@ seat_local_class_init (SeatLocalClass *klass)
     seat_class->set_next_session = seat_local_set_next_session;
     seat_class->run_script = seat_local_run_script;
     seat_class->stop = seat_local_stop;
-
-    g_type_class_add_private (klass, sizeof (SeatLocalPrivate));
 }

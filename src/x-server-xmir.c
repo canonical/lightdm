@@ -27,7 +27,7 @@ struct XServerXmirPrivate
     gchar *mir_socket;
 };
 
-G_DEFINE_TYPE (XServerXmir, x_server_xmir, X_SERVER_LOCAL_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (XServerXmir, x_server_xmir, X_SERVER_LOCAL_TYPE)
 
 static void
 compositor_ready_cb (UnitySystemCompositor *compositor, XServerXmir *server)
@@ -157,6 +157,4 @@ x_server_xmir_class_init (XServerXmirClass *klass)
     display_server_class->get_vt = x_server_xmir_get_vt;
     display_server_class->start = x_server_xmir_start;
     object_class->finalize = x_server_xmir_finalize;
-
-    g_type_class_add_private (klass, sizeof (XServerXmirPrivate));
 }

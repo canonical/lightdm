@@ -69,8 +69,8 @@ struct Login1SeatPrivate
     gboolean can_multi_session;
 };
 
-G_DEFINE_TYPE (Login1Service, login1_service, G_TYPE_OBJECT)
-G_DEFINE_TYPE (Login1Seat, login1_seat, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (Login1Service, login1_service, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (Login1Seat, login1_seat, G_TYPE_OBJECT)
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (Login1Seat, g_object_unref)
 
@@ -457,8 +457,6 @@ login1_service_class_init (Login1ServiceClass *klass)
 
     object_class->finalize = login1_service_finalize;
 
-    g_type_class_add_private (klass, sizeof (Login1ServicePrivate));
-
     service_signals[SEAT_ADDED] =
         g_signal_new (LOGIN1_SERVICE_SIGNAL_SEAT_ADDED,
                       G_TYPE_FROM_CLASS (klass),
@@ -523,8 +521,6 @@ login1_seat_class_init (Login1SeatClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = login1_seat_finalize;
-
-    g_type_class_add_private (klass, sizeof (Login1SeatPrivate));
 
     seat_signals[CAN_GRAPHICAL_CHANGED] =
         g_signal_new (LOGIN1_SEAT_SIGNAL_CAN_GRAPHICAL_CHANGED,

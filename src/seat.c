@@ -73,6 +73,7 @@ struct SeatPrivate
 static void seat_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (Seat, seat, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (Seat)
                          G_IMPLEMENT_INTERFACE (
                              LOGGER_TYPE, seat_logger_iface_init))
 
@@ -1871,8 +1872,6 @@ seat_class_init (SeatClass *klass)
     klass->stop = seat_real_stop;
 
     object_class->finalize = seat_finalize;
-
-    g_type_class_add_private (klass, sizeof (SeatPrivate));
 
     signals[SESSION_ADDED] =
         g_signal_new (SEAT_SIGNAL_SESSION_ADDED,

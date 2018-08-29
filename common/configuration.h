@@ -23,7 +23,7 @@ typedef struct ConfigurationPrivate ConfigurationPrivate;
 
 typedef struct
 {
-    GObject             parent_instance;
+    GObject               parent_instance;
     ConfigurationPrivate *priv;
 } Configuration;
 

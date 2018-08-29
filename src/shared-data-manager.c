@@ -34,7 +34,7 @@ struct OwnerInfo
     guint32 uid;
 };
 
-G_DEFINE_TYPE (SharedDataManager, shared_data_manager, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (SharedDataManager, shared_data_manager, G_TYPE_OBJECT)
 
 static SharedDataManager *singleton = NULL;
 
@@ -236,6 +236,4 @@ shared_data_manager_class_init (SharedDataManagerClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = shared_data_manager_finalize;
-
-    g_type_class_add_private (klass, sizeof (SharedDataManagerPrivate));
 }

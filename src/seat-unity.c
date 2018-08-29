@@ -37,7 +37,7 @@ struct SeatUnityPrivate
     DisplayServer *active_display_server;
 };
 
-G_DEFINE_TYPE (SeatUnity, seat_unity, SEAT_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (SeatUnity, seat_unity, SEAT_TYPE)
 
 static XServerXmir *create_x_server (Seat *seat);
 
@@ -395,6 +395,4 @@ seat_unity_class_init (SeatUnityClass *klass)
     seat_class->set_next_session = seat_unity_set_next_session;
     seat_class->run_script = seat_unity_run_script;
     seat_class->stop = seat_unity_stop;
-
-    g_type_class_add_private (klass, sizeof (SeatUnityPrivate));
 }

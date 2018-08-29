@@ -41,7 +41,7 @@ struct GreeterSocketPrivate
     Greeter *greeter;
 };
 
-G_DEFINE_TYPE (GreeterSocket, greeter_socket, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (GreeterSocket, greeter_socket, G_TYPE_OBJECT)
 
 GreeterSocket *
 greeter_socket_new (const gchar *path)
@@ -162,6 +162,4 @@ greeter_socket_class_init (GreeterSocketClass *klass)
                       NULL,
                       NULL,
                       GREETER_TYPE, 0);
-
-    g_type_class_add_private (klass, sizeof (GreeterSocketPrivate));
 }

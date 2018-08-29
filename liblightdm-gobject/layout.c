@@ -47,7 +47,7 @@ typedef struct
     gchar *description;
 } LightDMLayoutPrivate;
 
-G_DEFINE_TYPE (LightDMLayout, lightdm_layout, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (LightDMLayout, lightdm_layout, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LAYOUT, LightDMLayoutPrivate)
 
@@ -318,8 +318,6 @@ static void
 lightdm_layout_class_init (LightDMLayoutClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    g_type_class_add_private (klass, sizeof (LightDMLayoutPrivate));
 
     object_class->set_property = lightdm_layout_set_property;
     object_class->get_property = lightdm_layout_get_property;

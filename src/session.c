@@ -127,6 +127,7 @@ struct SessionPrivate
 static void session_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (Session, session, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (Session)
                          G_IMPLEMENT_INTERFACE (
                              LOGGER_TYPE, session_logger_iface_init))
 
@@ -965,8 +966,6 @@ session_class_init (SessionClass *klass)
     klass->run = session_real_run;
     klass->stop = session_real_stop;
     object_class->finalize = session_finalize;
-
-    g_type_class_add_private (klass, sizeof (SessionPrivate));
 
     signals[CREATE_GREETER] =
         g_signal_new (SESSION_SIGNAL_CREATE_GREETER,

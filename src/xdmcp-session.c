@@ -12,7 +12,7 @@
 #include "xdmcp-session.h"
 #include "xdmcp-session-private.h"
 
-G_DEFINE_TYPE (XDMCPSession, xdmcp_session, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XDMCPSession, xdmcp_session, G_TYPE_OBJECT)
 
 XDMCPSession *
 xdmcp_session_new (guint16 id)
@@ -93,6 +93,4 @@ xdmcp_session_class_init (XDMCPSessionClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = xdmcp_session_finalize;
-
-    g_type_class_add_private (klass, sizeof (XDMCPSessionPrivate));
 }

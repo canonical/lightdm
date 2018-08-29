@@ -49,7 +49,7 @@ typedef struct
     gchar *comment;
 } LightDMSessionPrivate;
 
-G_DEFINE_TYPE (LightDMSession, lightdm_session, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (LightDMSession, lightdm_session, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionPrivate)
 
@@ -354,8 +354,6 @@ static void
 lightdm_session_class_init (LightDMSessionClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    g_type_class_add_private (klass, sizeof (LightDMSessionPrivate));
 
     object_class->set_property = lightdm_session_set_property;
     object_class->get_property = lightdm_session_get_property;

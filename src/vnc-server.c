@@ -31,7 +31,7 @@ struct VNCServerPrivate
     GSocket *socket, *socket6;
 };
 
-G_DEFINE_TYPE (VNCServer, vnc_server, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (VNCServer, vnc_server, G_TYPE_OBJECT)
 
 VNCServer *
 vnc_server_new (void)
@@ -174,8 +174,6 @@ vnc_server_class_init (VNCServerClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = vnc_server_finalize;
-
-    g_type_class_add_private (klass, sizeof (VNCServerPrivate));
 
     signals[NEW_CONNECTION] =
         g_signal_new (VNC_SERVER_SIGNAL_NEW_CONNECTION,

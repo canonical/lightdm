@@ -83,7 +83,7 @@ struct GreeterPrivate
     guint from_greeter_watch;
 };
 
-G_DEFINE_TYPE (Greeter, greeter, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (Greeter, greeter, G_TYPE_OBJECT)
 
 #define API_VERSION 1
 
@@ -1124,6 +1124,4 @@ greeter_class_init (GreeterClass *klass)
                                                           "Active username",
                                                           NULL,
                                                           G_PARAM_READABLE));
-
-    g_type_class_add_private (klass, sizeof (GreeterPrivate));
 }

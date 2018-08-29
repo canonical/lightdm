@@ -39,7 +39,7 @@ struct XAuthorityPrivate
     gsize authorization_data_length;
 };
 
-G_DEFINE_TYPE (XAuthority, x_authority, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XAuthority, x_authority, G_TYPE_OBJECT)
 
 XAuthority *
 x_authority_new (guint16 family, const guint8 *address, gsize address_length, const gchar *number, const gchar *name, const guint8 *data, gsize data_length)
@@ -374,6 +374,4 @@ x_authority_class_init (XAuthorityClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = x_authority_finalize;
-
-    g_type_class_add_private (klass, sizeof (XAuthorityPrivate));
 }

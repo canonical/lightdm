@@ -19,7 +19,7 @@ struct WaylandSessionPrivate
     gboolean have_vt_ref;
 };
 
-G_DEFINE_TYPE (WaylandSession, wayland_session, DISPLAY_SERVER_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (WaylandSession, wayland_session, DISPLAY_SERVER_TYPE)
 
 WaylandSession *
 wayland_session_new (void)
@@ -98,6 +98,4 @@ wayland_session_class_init (WaylandSessionClass *klass)
     display_server_class->connect_session = wayland_session_connect_session;
     display_server_class->disconnect_session = wayland_session_disconnect_session;
     object_class->finalize = wayland_session_finalize;
-
-    g_type_class_add_private (klass, sizeof (WaylandSessionPrivate));
 }

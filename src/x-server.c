@@ -31,7 +31,7 @@ struct XServerPrivate
     xcb_connection_t *connection;
 };
 
-G_DEFINE_TYPE (XServer, x_server, DISPLAY_SERVER_TYPE)
+G_DEFINE_TYPE_WITH_PRIVATE (XServer, x_server, DISPLAY_SERVER_TYPE)
 
 void
 x_server_set_hostname (XServer *server, const gchar *hostname)
@@ -208,6 +208,4 @@ x_server_class_init (XServerClass *klass)
     display_server_class->connect_session = x_server_connect_session;
     display_server_class->disconnect_session = x_server_disconnect_session;
     object_class->finalize = x_server_finalize;
-
-    g_type_class_add_private (klass, sizeof (XServerPrivate));
 }

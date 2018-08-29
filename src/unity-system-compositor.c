@@ -67,6 +67,7 @@ struct UnitySystemCompositorPrivate
 static void unity_system_compositor_logger_iface_init (LoggerInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (UnitySystemCompositor, unity_system_compositor, DISPLAY_SERVER_TYPE,
+                         G_ADD_PRIVATE (UnitySystemCompositor)
                          G_IMPLEMENT_INTERFACE (LOGGER_TYPE, unity_system_compositor_logger_iface_init))
 
 typedef enum
@@ -502,8 +503,6 @@ unity_system_compositor_class_init (UnitySystemCompositorClass *klass)
     display_server_class->start = unity_system_compositor_start;
     display_server_class->stop = unity_system_compositor_stop;
     object_class->finalize = unity_system_compositor_finalize;
-
-    g_type_class_add_private (klass, sizeof (UnitySystemCompositorPrivate));
 }
 
 static gint

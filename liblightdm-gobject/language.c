@@ -50,7 +50,7 @@ typedef struct
     gchar *territory;
 } LightDMLanguagePrivate;
 
-G_DEFINE_TYPE (LightDMLanguage, lightdm_language, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (LightDMLanguage, lightdm_language, G_TYPE_OBJECT)
 
 #define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LANGUAGE, LightDMLanguagePrivate)
 
@@ -355,8 +355,6 @@ static void
 lightdm_language_class_init (LightDMLanguageClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-    g_type_class_add_private (klass, sizeof (LightDMLanguagePrivate));
 
     object_class->set_property = lightdm_language_set_property;
     object_class->get_property = lightdm_language_get_property;

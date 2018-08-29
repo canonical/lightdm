@@ -19,8 +19,8 @@ struct XAuthorityRecordPrivate
     guint8 *authorization_data;
 };
 
-G_DEFINE_TYPE (XAuthority, x_authority, G_TYPE_OBJECT)
-G_DEFINE_TYPE (XAuthorityRecord, x_authority_record, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XAuthority, x_authority, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (XAuthorityRecord, x_authority_record, G_TYPE_OBJECT)
 
 XAuthority *
 x_authority_new (void)
@@ -158,7 +158,6 @@ x_authority_class_init (XAuthorityClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     object_class->finalize = x_authority_finalize;
-    g_type_class_add_private (klass, sizeof (XAuthorityPrivate));
 }
 
 guint16
@@ -210,5 +209,4 @@ x_authority_record_class_init (XAuthorityRecordClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
     object_class->finalize = x_authority_record_finalize;
-    g_type_class_add_private (klass, sizeof (XAuthorityRecordPrivate));
 }

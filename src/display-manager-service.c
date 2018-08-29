@@ -47,7 +47,7 @@ struct DisplayManagerServicePrivate
     GHashTable *session_bus_entries;
 };
 
-G_DEFINE_TYPE (DisplayManagerService, display_manager_service, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (DisplayManagerService, display_manager_service, G_TYPE_OBJECT)
 
 typedef struct
 {
@@ -676,8 +676,6 @@ display_manager_service_class_init (DisplayManagerServiceClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = display_manager_service_finalize;
-
-    g_type_class_add_private (klass, sizeof (DisplayManagerServicePrivate));
 
     signals[READY] =
         g_signal_new (DISPLAY_MANAGER_SERVICE_SIGNAL_READY,

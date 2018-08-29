@@ -26,7 +26,7 @@ struct SessionConfigPrivate
     gboolean allow_greeter;
 };
 
-G_DEFINE_TYPE (SessionConfig, session_config, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (SessionConfig, session_config, G_TYPE_OBJECT)
 
 SessionConfig *
 session_config_new_from_file (const gchar *filename, const gchar *default_session_type, GError **error)
@@ -120,6 +120,4 @@ session_config_class_init (SessionConfigClass *klass)
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = session_config_finalize;
-
-    g_type_class_add_private (klass, sizeof (SessionConfigPrivate));
 }
