@@ -315,7 +315,7 @@ if COMPILE_LIBLIGHTDM_QT4
 TESTS += \
 	test-autologin-timeout-qt4 \
 	test-autologin-guest-timeout-qt4 \
-	test-autologin-session-timeout-qt5 \
+	test-autologin-session-timeout-qt4 \
 	test-cancel-authentication-qt4 \
 	test-login-qt4 \
 	test-login-manual-qt4 \
