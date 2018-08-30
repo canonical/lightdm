@@ -353,9 +353,7 @@ main (int argc, char **argv)
                     g_print ("    %s=%s\n", property_names[i], g_variant_print (value, FALSE));
                 }
             }
-            g_variant_iter_free (session_iter);
         }
-        g_variant_iter_free (seat_iter);
 
         return EXIT_SUCCESS;
     }
