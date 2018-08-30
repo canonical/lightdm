@@ -1,3 +1,10 @@
+lightdm (1.26.0-0ubuntu2) cosmic; urgency=medium
+
+  * Cherrypick upstream PR to add support for usr-merge in apparmor
+    profile. LP: #1784023
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Tue, 21 Aug 2018 00:05:28 +0100
+
 lightdm (1.26.0-0ubuntu1) bionic; urgency=medium
 
   * debian/control:
