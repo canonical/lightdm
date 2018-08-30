@@ -114,15 +114,14 @@ seat_properties_changed_cb (GDBusConnection *connection,
     Login1Seat *seat = user_data;
     Login1SeatPrivate *priv = login1_seat_get_instance_private (seat);
 
-    GVariantIter *iter;
-    GVariantIter *invalidated_properties;
+    g_autoptr(GVariantIter) iter = NULL;
+    g_autoptr(GVariantIter) invalidated_properties = NULL;
     g_variant_get (parameters, "(sa{sv}as)", NULL, &iter, &invalidated_properties);
 
     const gchar *name;
     GVariant *value;
     while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
         update_property (seat, name, value);
-    g_variant_iter_free (iter);
 
     while (g_variant_iter_loop (invalidated_properties, "&s", &name))
     {
@@ -147,7 +146,6 @@ seat_properties_changed_cb (GDBusConnection *connection,
             update_property (seat, name, v);
         }
     }
-    g_variant_iter_free (invalidated_properties);
 }
 
 static Login1Seat *
@@ -190,7 +188,7 @@ add_seat (Login1Service *service, const gchar *id, const gchar *path)
         g_warning ("Failed to get seat properties: %s", error->message);
     if (result)
     {
-        GVariantIter *properties;
+        g_autoptr(GVariantIter) properties = NULL;
         g_variant_get (result, "(a{sv})", &properties);
 
         const gchar *name;
@@ -202,7 +200,6 @@ add_seat (Login1Service *service, const gchar *id, const gchar *path)
             else if (strcmp (name, "CanMultiSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
                 s_priv->can_multi_session = g_variant_get_boolean (value);
         }
-        g_variant_iter_free (properties);
     }
 
     priv->seats = g_list_append (priv->seats, seat);
@@ -292,13 +289,12 @@ login1_service_connect (Login1Service *service)
     if (!result)
         return FALSE;
 
-    GVariantIter *seat_iter;
+    g_autoptr(GVariantIter) seat_iter = NULL;
     g_variant_get (result, "(a(so))", &seat_iter);
 
     const gchar *id, *path;
     while (g_variant_iter_loop (seat_iter, "(&s&o)", &id, &path))
         add_seat (service, id, path);
-    g_variant_iter_free (seat_iter);
 
     priv->connected = TRUE;
 

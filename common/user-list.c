@@ -511,7 +511,7 @@ load_accounts_user (CommonUser *user)
         return FALSE;
 
     /* Store the properties we need */
-    GVariantIter *iter;
+    g_autoptr(GVariantIter) iter = NULL;
     g_variant_get (result, "(a{sv})", &iter);
     const gchar *name;
     GVariant *value;
@@ -561,7 +561,6 @@ load_accounts_user (CommonUser *user)
         else if (strcmp (name, "Uid") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_UINT64))
             priv->uid = g_variant_get_uint64 (value);
     }
-    g_variant_iter_free (iter);
 
     g_autoptr(GVariant) extra_result = g_dbus_connection_call_sync (priv->bus,
                                                                     "org.freedesktop.Accounts",
@@ -577,8 +576,10 @@ load_accounts_user (CommonUser *user)
     if (error)
         g_warning ("Error updating user %s: %s", priv->path, error->message);
     if (extra_result) {
-        g_variant_get (extra_result, "(a{sv})", &iter);
-        while (g_variant_iter_loop (iter, "{&sv}", &name, &value))
+        g_autoptr(GVariantIter) extra_iter = NULL;
+
+        g_variant_get (extra_result, "(a{sv})", &extra_iter);
+        while (g_variant_iter_loop (extra_iter, "{&sv}", &name, &value))
         {
             if (strcmp (name, "BackgroundFile") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_STRING))
             {
@@ -600,7 +601,6 @@ load_accounts_user (CommonUser *user)
                 }
             }
         }
-        g_variant_iter_free (iter);
     }
 
     return !system_account;
@@ -841,12 +841,11 @@ load_sessions (CommonUserList *user_list)
             g_variant_get (result, "(v)", &value);
 
             g_debug ("Loading sessions from org.freedesktop.DisplayManager");
-            GVariantIter *iter;
+            g_autoptr(GVariantIter) iter = NULL;
             g_variant_get (value, "ao", &iter);
             const gchar *path;
             while (g_variant_iter_loop (iter, "&o", &path))
                 load_session (user_list, path);
-            g_variant_iter_free (iter);
         }
         else
             g_warning ("Unexpected type from org.freedesktop.DisplayManager.Sessions: %s", g_variant_get_type_string (result));
@@ -901,12 +900,11 @@ load_users (CommonUserList *user_list)
     if (result)
     {
         g_debug ("Loading users from org.freedesktop.Accounts");
-        GVariantIter *iter;
+        g_autoptr(GVariantIter) iter = NULL;
         g_variant_get (result, "(ao)", &iter);
         const gchar *path;
         while (g_variant_iter_loop (iter, "&o", &path))
             add_accounts_user (user_list, path, FALSE);
-        g_variant_iter_free (iter);
     }
     else
     {
