@@ -1,3 +1,16 @@
+Overview of changes in lightdm 1.28.0
+
+    * Continue to shutdown session is removing X authority fails
+    * Set XDG_SEAT env variable in script hooks
+    * Fix small leak in XDMCP server
+    * liblightdm-qt: mark class PowerInterface as exported
+    * Fix one qt5 test being run instead of a qt4 one
+    * Remove use of deprecated g_type_class_add_private
+    * Modernize private data in objects
+    * Document XDG_SEAT_PATH in man page
+    * Fix install failing if link already exists
+    * Remove bashisms in configure.ac
+
 Overview of changes in lightdm 1.26.0
 
     * No changes from 1.25.2
