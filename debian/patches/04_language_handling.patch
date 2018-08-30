@@ -69,7 +69,7 @@ Index: lightdm/src/seat.c
 ===================================================================
 --- lightdm.orig/src/seat.c
 +++ lightdm/src/seat.c
-@@ -944,7 +944,7 @@ configure_session (Session *session, Ses
+@@ -987,7 +987,7 @@ configure_session (Session *session, Ses
      }
      if (language && language[0] != '\0')
      {

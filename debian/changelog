@@ -1,3 +1,19 @@
+lightdm (1.28.0-0ubuntu1) cosmic; urgency=medium
+
+  * New upstream release:
+    - Continue to shutdown session is removing X authority fails
+    - Set XDG_SEAT env variable in script hooks
+    - Fix small leak in XDMCP server
+    - liblightdm-qt: mark class PowerInterface as exported
+    - Fix one qt5 test being run instead of a qt4 one
+    - Remove use of deprecated g_type_class_add_private
+    - Modernize private data in objects
+    - Document XDG_SEAT_PATH in man page
+    - Fix install failing if link already exists
+    - Remove bashisms in configure.ac
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Thu, 30 Aug 2018 14:34:55 +1200
+
 lightdm (1.26.0-0ubuntu2) cosmic; urgency=medium
 
   * Cherrypick upstream PR to add support for usr-merge in apparmor
