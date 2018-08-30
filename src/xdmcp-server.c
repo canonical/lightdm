@@ -162,7 +162,7 @@ add_session (XDMCPServer *server)
 
     session = xdmcp_session_new (id);
     session->priv->server = server;
-    g_hash_table_insert (server->priv->sessions, GINT_TO_POINTER ((gint) id), g_object_ref (session));
+    g_hash_table_insert (server->priv->sessions, GINT_TO_POINTER ((gint) id), session);
     session->priv->inactive_timeout = g_timeout_add (MANAGE_TIMEOUT, (GSourceFunc) session_timeout_cb, session);
 
     return session;
