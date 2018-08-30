@@ -29,7 +29,7 @@ typedef enum
     XDMCP_Alive          = 14
 } XDMCPOpcode;
 
-struct XDMCPClientPrivate
+typedef struct
 {
     gchar *host;
     gint port;
@@ -38,7 +38,7 @@ struct XDMCPClientPrivate
     gchar *authorization_name;
     gint authorization_data_length;
     guint8 *authorization_data;
-};
+} XDMCPClientPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XDMCPClient, xdmcp_client, G_TYPE_OBJECT)
 
@@ -56,8 +56,10 @@ static guint xdmcp_client_signals[XDMCP_CLIENT_LAST_SIGNAL] = { 0 };
 static void
 xdmcp_write (XDMCPClient *client, const guint8 *buffer, gssize buffer_length)
 {
+    XDMCPClientPrivate *priv = xdmcp_client_get_instance_private (client);
+
     g_autoptr(GError) error = NULL;
-    gssize n_written = g_socket_send (client->priv->socket, (const gchar *) buffer, buffer_length, NULL, &error);
+    gssize n_written = g_socket_send (priv->socket, (const gchar *) buffer, buffer_length, NULL, &error);
     if (n_written < 0)
         g_warning ("Failed to send XDMCP request: %s", error->message);
     else if (n_written != buffer_length)
@@ -256,30 +258,34 @@ xdmcp_client_new (void)
 void
 xdmcp_client_set_hostname (XDMCPClient *client, const gchar *hostname)
 {
-    g_free (client->priv->host);
-    client->priv->host = g_strdup (hostname);
+    XDMCPClientPrivate *priv = xdmcp_client_get_instance_private (client);
+    g_free (priv->host);
+    priv->host = g_strdup (hostname);
 }
 
 void
 xdmcp_client_set_port (XDMCPClient *client, guint16 port)
 {
-    client->priv->port = port;
+    XDMCPClientPrivate *priv = xdmcp_client_get_instance_private (client);
+    priv->port = port;
 }
 
 gboolean
 xdmcp_client_start (XDMCPClient *client)
 {
-    if (client->priv->socket)
+    XDMCPClientPrivate *priv = xdmcp_client_get_instance_private (client);
+
+    if (priv->socket)
         return TRUE;
 
     g_autoptr(GError) error = NULL;
-    client->priv->socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, &error);
+    priv->socket = g_socket_new (G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM, G_SOCKET_PROTOCOL_UDP, &error);
     if (error)
         g_warning ("Error creating XDMCP socket: %s", error->message);
-    if (!client->priv->socket)
+    if (!priv->socket)
         return FALSE;
 
-    GSocketConnectable *address = g_network_address_new (client->priv->host, client->priv->port);
+    GSocketConnectable *address = g_network_address_new (priv->host, priv->port);
     GSocketAddressEnumerator *enumerator = g_socket_connectable_enumerate (address);
     while (TRUE)
     {
@@ -290,13 +296,13 @@ xdmcp_client_start (XDMCPClient *client)
         if (!socket_address)
             return FALSE;
 
-        if (!g_socket_connect (client->priv->socket, socket_address, NULL, &e))
+        if (!g_socket_connect (priv->socket, socket_address, NULL, &e))
         {
             g_warning ("Unable to connect XDMCP socket: %s", error->message);
             continue;
         }
 
-        g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (client->priv->socket)), G_IO_IN, xdmcp_data_cb, client);
+        g_io_add_watch (g_io_channel_unix_new (g_socket_get_fd (priv->socket)), G_IO_IN, xdmcp_data_cb, client);
 
         return TRUE;
     }
@@ -305,18 +311,20 @@ xdmcp_client_start (XDMCPClient *client)
 GInetAddress *
 xdmcp_client_get_local_address (XDMCPClient *client)
 {
-    if (!client->priv->socket)
+    XDMCPClientPrivate *priv = xdmcp_client_get_instance_private (client);
+
+    if (!priv->socket)
         return NULL;
 
-    GSocketAddress *socket_address = g_socket_get_local_address (client->priv->socket, NULL);
+    GSocketAddress *socket_address = g_socket_get_local_address (priv->socket, NULL);
     return g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (socket_address));
 }
 
 static void
 xdmcp_client_init (XDMCPClient *client)
 {
-    client->priv = G_TYPE_INSTANCE_GET_PRIVATE (client, xdmcp_client_get_type (), XDMCPClientPrivate);
-    client->priv->port = XDMCP_PORT;
+    XDMCPClientPrivate *priv = xdmcp_client_get_instance_private (client);
+    priv->port = XDMCP_PORT;
 }
 
 static void
@@ -458,11 +466,13 @@ xdmcp_client_send_keep_alive (XDMCPClient *client, guint16 display_number, guint
 static void
 xdmcp_client_finalize (GObject *object)
 {
-    XDMCPClient *client = (XDMCPClient *) object;
-    g_clear_pointer (&client->priv->host, g_free);
-    g_clear_object (&client->priv->socket);
-    g_clear_pointer (&client->priv->authorization_name, g_free);
-    g_clear_pointer (&client->priv->authorization_data, g_free);
+    XDMCPClient *self = XDMCP_CLIENT (object);
+    XDMCPClientPrivate *priv = xdmcp_client_get_instance_private (self);
+
+    g_clear_pointer (&priv->host, g_free);
+    g_clear_object (&priv->socket);
+    g_clear_pointer (&priv->authorization_name, g_free);
+    g_clear_pointer (&priv->authorization_data, g_free);
 }
 
 static void

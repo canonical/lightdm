@@ -23,12 +23,9 @@ G_BEGIN_DECLS
 
 #define XDMCP_SERVER_SIGNAL_NEW_SESSION "new-session"
 
-typedef struct XDMCPServerPrivate XDMCPServerPrivate;
-
 typedef struct
 {
-    GObject         parent_instance;
-    XDMCPServerPrivate *priv;
+    GObject parent_instance;
 } XDMCPServer;
 
 typedef struct

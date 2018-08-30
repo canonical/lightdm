@@ -20,12 +20,9 @@ enum
     XAUTH_FAMILY_WILD = 65535
 };
 
-typedef struct XAuthorityPrivate XAuthorityPrivate;
-
 typedef struct
 {
     GObjectClass parent_instance;
-    XAuthorityPrivate *priv;
 } XAuthority;
 
 typedef struct
@@ -33,12 +30,9 @@ typedef struct
     GObjectClass parent_class;
 } XAuthorityClass;
 
-typedef struct XAuthorityRecordPrivate XAuthorityRecordPrivate;
-
 typedef struct
 {
     GObjectClass parent_instance;
-    XAuthorityRecordPrivate *priv;
 } XAuthorityRecord;
 
 typedef struct

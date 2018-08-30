@@ -38,7 +38,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct SessionPrivate
+typedef struct
 {
     /* Configuration for this session */
     SessionConfig *config;
@@ -119,7 +119,7 @@ struct SessionPrivate
 
     /* TRUE if stopping this session */
     gboolean stopping;
-};
+} SessionPrivate;
 
 /* Maximum length of a string to pass between daemon and session */
 #define MAX_STRING_LENGTH 65535
@@ -140,139 +140,159 @@ session_new (void)
 void
 session_set_config (Session *session, SessionConfig *config)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
 
-    g_clear_object (&session->priv->config);
-    session->priv->config = g_object_ref (config);
+    g_clear_object (&priv->config);
+    priv->config = g_object_ref (config);
 }
 
 SessionConfig *
 session_get_config (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->config;
+    return priv->config;
 }
 
 const gchar *
 session_get_session_type (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session_config_get_session_type (session->priv->config);
+    return session_config_get_session_type (priv->config);
 }
 
 void
 session_set_pam_service (Session *session, const gchar *pam_service)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    g_free (session->priv->pam_service);
-    session->priv->pam_service = g_strdup (pam_service);
+    g_free (priv->pam_service);
+    priv->pam_service = g_strdup (pam_service);
 }
 
 void
 session_set_username (Session *session, const gchar *username)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    g_free (session->priv->username);
-    session->priv->username = g_strdup (username);
+    g_free (priv->username);
+    priv->username = g_strdup (username);
 }
 
 void
 session_set_do_authenticate (Session *session, gboolean do_authenticate)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    session->priv->do_authenticate = do_authenticate;
+    priv->do_authenticate = do_authenticate;
 }
 
 void
 session_set_is_interactive (Session *session, gboolean is_interactive)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    session->priv->is_interactive = is_interactive;
+    priv->is_interactive = is_interactive;
 }
 
 void
 session_set_is_guest (Session *session, gboolean is_guest)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    session->priv->is_guest = is_guest;
+    priv->is_guest = is_guest;
 }
 
 gboolean
 session_get_is_guest (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, FALSE);
-    return session->priv->is_guest;
+    return priv->is_guest;
 }
 
 void
 session_set_log_file (Session *session, const gchar *filename, LogMode log_mode)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    g_free (session->priv->log_filename);
-    session->priv->log_filename = g_strdup (filename);
-    session->priv->log_mode = log_mode;
+    g_free (priv->log_filename);
+    priv->log_filename = g_strdup (filename);
+    priv->log_mode = log_mode;
 }
 
 void
 session_set_display_server (Session *session, DisplayServer *display_server)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
     g_return_if_fail (display_server != NULL);
 
-    if (session->priv->display_server == display_server)
+    if (priv->display_server == display_server)
         return;
 
-    if (session->priv->display_server)
-        display_server_disconnect_session (session->priv->display_server, session);
-    g_clear_object (&session->priv->display_server);
-    session->priv->display_server = g_object_ref (display_server);
+    if (priv->display_server)
+        display_server_disconnect_session (priv->display_server, session);
+    g_clear_object (&priv->display_server);
+    priv->display_server = g_object_ref (display_server);
 }
 
 DisplayServer *
 session_get_display_server (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->display_server;
+    return priv->display_server;
 }
 
 void
 session_set_tty (Session *session, const gchar *tty)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    g_free (session->priv->tty);
-    session->priv->tty = g_strdup (tty);
+    g_free (priv->tty);
+    priv->tty = g_strdup (tty);
 }
 
 void
 session_set_xdisplay (Session *session, const gchar *xdisplay)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    g_free (session->priv->xdisplay);
-    session->priv->xdisplay = g_strdup (xdisplay);
+    g_free (priv->xdisplay);
+    priv->xdisplay = g_strdup (xdisplay);
 }
 
 void
 session_set_x_authority (Session *session, XAuthority *authority, gboolean use_system_location)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    g_clear_object (&session->priv->x_authority);
+    g_clear_object (&priv->x_authority);
     if (authority)
-        session->priv->x_authority = g_object_ref (authority);
-    session->priv->x_authority_use_system_location = use_system_location;
+        priv->x_authority = g_object_ref (authority);
+    priv->x_authority_use_system_location = use_system_location;
 }
 
 void
 session_set_remote_host_name (Session *session, const gchar *remote_host_name)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    g_free (session->priv->remote_host_name);
-    session->priv->remote_host_name = g_strdup (remote_host_name);
+    g_free (priv->remote_host_name);
+    priv->remote_host_name = g_strdup (remote_host_name);
 }
 
 static GList *
 find_env_entry (Session *session, const gchar *name)
 {
-    for (GList *link = session->priv->env; link; link = link->next)
+    SessionPrivate *priv = session_get_instance_private (session);
+
+    for (GList *link = priv->env; link; link = link->next)
     {
         const gchar *entry = link->data;
 
@@ -286,6 +306,8 @@ find_env_entry (Session *session, const gchar *name)
 void
 session_set_env (Session *session, const gchar *name, const gchar *value)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
     g_return_if_fail (value != NULL);
 
@@ -298,7 +320,7 @@ session_set_env (Session *session, const gchar *name, const gchar *value)
         link->data = entry;
     }
     else
-        session->priv->env = g_list_append (session->priv->env, entry);
+        priv->env = g_list_append (priv->env, entry);
 }
 
 const gchar *
@@ -316,6 +338,8 @@ session_get_env (Session *session, const gchar *name)
 void
 session_unset_env (Session *session, const gchar *name)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
 
     GList *link = find_env_entry (session, name);
@@ -323,34 +347,38 @@ session_unset_env (Session *session, const gchar *name)
         return;
 
     g_free (link->data);
-    session->priv->env = g_list_delete_link (session->priv->env, link);
+    priv->env = g_list_delete_link (priv->env, link);
 }
 
 void
 session_set_argv (Session *session, gchar **argv)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    session->priv->argv = g_strdupv (argv);
+    priv->argv = g_strdupv (argv);
 }
 
 User *
 session_get_user (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_val_if_fail (session != NULL, NULL);
 
-    if (session->priv->username == NULL)
+    if (priv->username == NULL)
         return NULL;
 
-    if (!session->priv->user)
-        session->priv->user = accounts_get_user_by_name (session->priv->username);
+    if (!priv->user)
+        priv->user = accounts_get_user_by_name (priv->username);
 
-    return session->priv->user;
+    return priv->user;
 }
 
 static void
 write_data (Session *session, const void *buf, size_t count)
 {
-    if (write (session->priv->to_child_input, buf, count) != count)
+    SessionPrivate *priv = session_get_instance_private (session);
+    if (write (priv->to_child_input, buf, count) != count)
         l_warning (session, "Error writing to session: %s", strerror (errno));
 }
 
@@ -366,28 +394,32 @@ write_string (Session *session, const char *value)
 static void
 write_xauth (Session *session, XAuthority *x_authority)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     if (!x_authority)
     {
         write_string (session, NULL);
         return;
     }
 
-    write_string (session, x_authority_get_authorization_name (session->priv->x_authority));
-    guint16 family = x_authority_get_family (session->priv->x_authority);
+    write_string (session, x_authority_get_authorization_name (priv->x_authority));
+    guint16 family = x_authority_get_family (priv->x_authority);
     write_data (session, &family, sizeof (family));
-    gsize length = x_authority_get_address_length (session->priv->x_authority);
+    gsize length = x_authority_get_address_length (priv->x_authority);
     write_data (session, &length, sizeof (length));
-    write_data (session, x_authority_get_address (session->priv->x_authority), length);
-    write_string (session, x_authority_get_number (session->priv->x_authority));
-    length = x_authority_get_authorization_data_length (session->priv->x_authority);
+    write_data (session, x_authority_get_address (priv->x_authority), length);
+    write_string (session, x_authority_get_number (priv->x_authority));
+    length = x_authority_get_authorization_data_length (priv->x_authority);
     write_data (session, &length, sizeof (length));
-    write_data (session, x_authority_get_authorization_data (session->priv->x_authority), length);
+    write_data (session, x_authority_get_authorization_data (priv->x_authority), length);
 }
 
 static ssize_t
 read_from_child (Session *session, void *buf, size_t count)
 {
-    ssize_t n_read = read (session->priv->from_child_output, buf, count);
+    SessionPrivate *priv = session_get_instance_private (session);
+
+    ssize_t n_read = read (priv->from_child_output, buf, count);
     if (n_read < 0)
         l_warning (session, "Error reading from session: %s", strerror (errno));
     return n_read;
@@ -418,8 +450,9 @@ static void
 session_watch_cb (GPid pid, gint status, gpointer data)
 {
     Session *session = data;
+    SessionPrivate *priv = session_get_instance_private (session);
 
-    session->priv->child_watch = 0;
+    priv->child_watch = 0;
 
     if (WIFEXITED (status))
         l_debug (session, "Exited with return value %d", WEXITSTATUS (status));
@@ -427,24 +460,24 @@ session_watch_cb (GPid pid, gint status, gpointer data)
         l_debug (session, "Terminated with signal %d", WTERMSIG (status));
 
     /* do this as late as possible for log messages prefix */
-    session->priv->pid = 0;
+    priv->pid = 0;
 
     /* If failed during authentication then report this as an authentication failure */
-    if (session->priv->authentication_started && !session->priv->authentication_complete)
+    if (priv->authentication_started && !priv->authentication_complete)
     {
         l_debug (session, "Failed during authentication");
-        session->priv->authentication_complete = TRUE;
-        session->priv->authentication_result = PAM_CONV_ERR;
-        g_free (session->priv->authentication_result_string);
-        session->priv->authentication_result_string = g_strdup ("Authentication stopped before completion");
+        priv->authentication_complete = TRUE;
+        priv->authentication_result = PAM_CONV_ERR;
+        g_free (priv->authentication_result_string);
+        priv->authentication_result_string = g_strdup ("Authentication stopped before completion");
         g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_COMPLETE], 0);
     }
 
     g_signal_emit (G_OBJECT (session), signals[STOPPED], 0);
 
     /* Delete account if it is a guest one */
-    if (session->priv->is_guest)
-        guest_account_cleanup (session->priv->username);
+    if (priv->is_guest)
+        guest_account_cleanup (priv->username);
 
     /* Drop our reference on the child process, it has terminated */
     g_object_unref (session);
@@ -454,21 +487,22 @@ static gboolean
 from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     Session *session = data;
+    SessionPrivate *priv = session_get_instance_private (session);
 
     /* Remote end gone */
     if (condition == G_IO_HUP)
     {
-        session->priv->from_child_watch = 0;
+        priv->from_child_watch = 0;
         return FALSE;
     }
 
     /* Get the username currently being authenticated (may change during authentication) */
     g_autofree gchar *username = read_string_from_child (session);
-    if (g_strcmp0 (username, session->priv->username) != 0)
+    if (g_strcmp0 (username, priv->username) != 0)
     {
-        g_free (session->priv->username);
-        session->priv->username = g_steal_pointer (&username);
-        g_clear_object (&session->priv->user);
+        g_free (priv->username);
+        priv->username = g_steal_pointer (&username);
+        g_clear_object (&priv->user);
     }
 
     /* Check if authentication completed */
@@ -478,21 +512,21 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         l_debug (session, "Error reading from child: %s", strerror (errno));
     if (n_read <= 0)
     {
-        session->priv->from_child_watch = 0;
+        priv->from_child_watch = 0;
         return FALSE;
     }
 
     if (auth_complete)
     {
-        session->priv->authentication_complete = TRUE;
-        read_from_child (session, &session->priv->authentication_result, sizeof (session->priv->authentication_result));
-        g_free (session->priv->authentication_result_string);
-        session->priv->authentication_result_string = read_string_from_child (session);
+        priv->authentication_complete = TRUE;
+        read_from_child (session, &priv->authentication_result, sizeof (priv->authentication_result));
+        g_free (priv->authentication_result_string);
+        priv->authentication_result_string = read_string_from_child (session);
 
-        l_debug (session, "Authentication complete with return value %d: %s", session->priv->authentication_result, session->priv->authentication_result_string);
+        l_debug (session, "Authentication complete with return value %d: %s", priv->authentication_result, priv->authentication_result_string);
 
         /* No longer expect any more messages */
-        session->priv->from_child_watch = 0;
+        priv->from_child_watch = 0;
 
         g_signal_emit (G_OBJECT (session), signals[AUTHENTICATION_COMPLETE], 0);
 
@@ -500,17 +534,17 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     }
     else
     {
-        session->priv->messages_length = 0;
-        read_from_child (session, &session->priv->messages_length, sizeof (session->priv->messages_length));
-        session->priv->messages = calloc (session->priv->messages_length, sizeof (struct pam_message));
-        for (int i = 0; i < session->priv->messages_length; i++)
+        priv->messages_length = 0;
+        read_from_child (session, &priv->messages_length, sizeof (priv->messages_length));
+        priv->messages = calloc (priv->messages_length, sizeof (struct pam_message));
+        for (int i = 0; i < priv->messages_length; i++)
         {
-            struct pam_message *m = &session->priv->messages[i];
+            struct pam_message *m = &priv->messages[i];
             read_from_child (session, &m->msg_style, sizeof (m->msg_style));
             m->msg = read_string_from_child (session);
         }
 
-        l_debug (session, "Got %d message(s) from PAM", session->priv->messages_length);
+        l_debug (session, "Got %d message(s) from PAM", priv->messages_length);
 
         g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0);
     }
@@ -528,7 +562,8 @@ session_start (Session *session)
 gboolean
 session_get_is_started (Session *session)
 {
-    return session->priv->pid != 0;
+    SessionPrivate *priv = session_get_instance_private (session);
+    return priv->pid != 0;
 }
 
 static Greeter *
@@ -542,10 +577,12 @@ create_greeter_cb (GreeterSocket *socket, Session *session)
 static gboolean
 session_real_start (Session *session)
 {
-    g_return_val_if_fail (session->priv->pid == 0, FALSE);
+    SessionPrivate *priv = session_get_instance_private (session);
 
-    if (session->priv->display_server)
-        display_server_connect_session (session->priv->display_server, session);
+    g_return_val_if_fail (priv->pid == 0, FALSE);
+
+    if (priv->display_server)
+        display_server_connect_session (priv->display_server, session);
 
     /* Create pipes to talk to the child */
     int to_child_pipe[2], from_child_pipe[2];
@@ -555,29 +592,29 @@ session_real_start (Session *session)
         return FALSE;
     }
     int to_child_output = to_child_pipe[0];
-    session->priv->to_child_input = to_child_pipe[1];
-    session->priv->from_child_output = from_child_pipe[0];
+    priv->to_child_input = to_child_pipe[1];
+    priv->from_child_output = from_child_pipe[0];
     int from_child_input = from_child_pipe[1];
-    session->priv->from_child_channel = g_io_channel_unix_new (session->priv->from_child_output);
-    session->priv->from_child_watch = g_io_add_watch (session->priv->from_child_channel, G_IO_IN | G_IO_HUP, from_child_cb, session);
+    priv->from_child_channel = g_io_channel_unix_new (priv->from_child_output);
+    priv->from_child_watch = g_io_add_watch (priv->from_child_channel, G_IO_IN | G_IO_HUP, from_child_cb, session);
 
     /* Don't allow the daemon end of the pipes to be accessed in child processes */
-    fcntl (session->priv->to_child_input, F_SETFD, FD_CLOEXEC);
-    fcntl (session->priv->from_child_output, F_SETFD, FD_CLOEXEC);
+    fcntl (priv->to_child_input, F_SETFD, FD_CLOEXEC);
+    fcntl (priv->from_child_output, F_SETFD, FD_CLOEXEC);
 
     /* Create the guest account if it is one */
-    if (session->priv->is_guest && session->priv->username == NULL)
+    if (priv->is_guest && priv->username == NULL)
     {
-        session->priv->username = guest_account_setup ();
-        if (!session->priv->username)
+        priv->username = guest_account_setup ();
+        if (!priv->username)
             return FALSE;
     }
 
     /* Run the child */
     g_autofree gchar *arg0 = g_strdup_printf ("%d", to_child_output);
     g_autofree gchar *arg1 = g_strdup_printf ("%d", from_child_input);
-    session->priv->pid = fork ();
-    if (session->priv->pid == 0)
+    priv->pid = fork ();
+    if (priv->pid == 0)
     {
         /* Run us again in session child mode */
         execlp ("lightdm",
@@ -587,7 +624,7 @@ session_real_start (Session *session)
         _exit (EXIT_FAILURE);
     }
 
-    if (session->priv->pid < 0)
+    if (priv->pid < 0)
     {
         g_debug ("Failed to fork session child process: %s", strerror (errno));
         return FALSE;
@@ -599,8 +636,8 @@ session_real_start (Session *session)
     g_object_ref (session);
 
     /* Listen for session termination */
-    session->priv->authentication_started = TRUE;
-    session->priv->child_watch = g_child_watch_add (session->priv->pid, session_watch_cb, session);
+    priv->authentication_started = TRUE;
+    priv->child_watch = g_child_watch_add (priv->pid, session_watch_cb, session);
 
     /* Close the ends of the pipes we don't need */
     close (to_child_output);
@@ -611,17 +648,17 @@ session_real_start (Session *session)
     write_data (session, &version, sizeof (version));
 
     /* Send configuration */
-    write_string (session, session->priv->pam_service);
-    write_string (session, session->priv->username);
-    write_data (session, &session->priv->do_authenticate, sizeof (session->priv->do_authenticate));
-    write_data (session, &session->priv->is_interactive, sizeof (session->priv->is_interactive));
+    write_string (session, priv->pam_service);
+    write_string (session, priv->username);
+    write_data (session, &priv->do_authenticate, sizeof (priv->do_authenticate));
+    write_data (session, &priv->is_interactive, sizeof (priv->is_interactive));
     write_string (session, NULL); /* Used to be class, now we just use the environment variable */
-    write_string (session, session->priv->tty);
-    write_string (session, session->priv->remote_host_name);
-    write_string (session, session->priv->xdisplay);
-    write_xauth (session, session->priv->x_authority);
+    write_string (session, priv->tty);
+    write_string (session, priv->remote_host_name);
+    write_string (session, priv->xdisplay);
+    write_xauth (session, priv->x_authority);
 
-    l_debug (session, "Started with service '%s', username '%s'", session->priv->pam_service, session->priv->username);
+    l_debug (session, "Started with service '%s', username '%s'", priv->pam_service, priv->username);
 
     return TRUE;
 }
@@ -629,43 +666,48 @@ session_real_start (Session *session)
 const gchar *
 session_get_username (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->username;
+    return priv->username;
 }
 
 const gchar *
 session_get_login1_session_id (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->login1_session_id;
+    return priv->login1_session_id;
 }
 
 const gchar *
 session_get_console_kit_cookie (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->console_kit_cookie;
+    return priv->console_kit_cookie;
 }
 
 void
 session_respond (Session *session, struct pam_response *response)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
 
     int error = PAM_SUCCESS;
     write_data (session, &error, sizeof (error));
-    for (int i = 0; i < session->priv->messages_length; i++)
+    for (int i = 0; i < priv->messages_length; i++)
     {
         write_string (session, response[i].resp);
         write_data (session, &response[i].resp_retcode, sizeof (response[i].resp_retcode));
     }
 
     /* Delete the old messages */
-    for (int i = 0; i < session->priv->messages_length; i++)
-        g_free ((char *) session->priv->messages[i].msg);
-    g_free (session->priv->messages);
-    session->priv->messages = NULL;
-    session->priv->messages_length = 0;
+    for (int i = 0; i < priv->messages_length; i++)
+        g_free ((char *) priv->messages[i].msg);
+    g_free (priv->messages);
+    priv->messages = NULL;
+    priv->messages_length = 0;
 }
 
 void
@@ -680,75 +722,84 @@ session_respond_error (Session *session, int error)
 int
 session_get_messages_length (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, 0);
-    return session->priv->messages_length;
+    return priv->messages_length;
 }
 
 const struct pam_message *
 session_get_messages (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->messages;
+    return priv->messages;
 }
 
 gboolean
 session_get_is_authenticated (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, FALSE);
-    return session->priv->authentication_complete && session->priv->authentication_result == PAM_SUCCESS;
+    return priv->authentication_complete && priv->authentication_result == PAM_SUCCESS;
 }
 
 int
 session_get_authentication_result (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, 0);
-    return session->priv->authentication_result;
+    return priv->authentication_result;
 }
 
 const gchar *
 session_get_authentication_result_string (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->authentication_result_string;
+    return priv->authentication_result_string;
 }
 
 void
 session_run (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_if_fail (session != NULL);
-    g_return_if_fail (session->priv->display_server != NULL);
+    g_return_if_fail (priv->display_server != NULL);
     return SESSION_GET_CLASS (session)->run (session);
 }
 
 gboolean
 session_get_is_run (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, FALSE);
-    return session->priv->command_run;
+    return priv->command_run;
 }
 
 static void
 session_real_run (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
-    g_return_if_fail (!session->priv->command_run);
+    g_return_if_fail (!priv->command_run);
     g_return_if_fail (session_get_is_authenticated (session));
-    g_return_if_fail (session->priv->argv != NULL);
-    g_return_if_fail (session->priv->pid != 0);
+    g_return_if_fail (priv->argv != NULL);
+    g_return_if_fail (priv->pid != 0);
 
-    display_server_connect_session (session->priv->display_server, session);
+    display_server_connect_session (priv->display_server, session);
 
-    session->priv->command_run = TRUE;
+    priv->command_run = TRUE;
 
-    g_autofree gchar *command = g_strjoinv (" ", session->priv->argv);
+    g_autofree gchar *command = g_strjoinv (" ", priv->argv);
     l_debug (session, "Running command %s", command);
 
     /* Create authority location */
     g_autofree gchar *x_authority_filename = NULL;
-    if (session->priv->x_authority_use_system_location)
+    if (priv->x_authority_use_system_location)
     {
         g_autofree gchar *run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-        g_autofree gchar *dir = g_build_filename (run_dir, session->priv->username, NULL);
+        g_autofree gchar *dir = g_build_filename (run_dir, priv->username, NULL);
 
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
             l_warning (session, "Failed to set create system authority dir %s: %s", dir, strerror (errno));
@@ -764,18 +815,18 @@ session_real_run (Session *session)
         x_authority_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
 
     /* Make sure shared user directory for this user exists */
-    if (!session->priv->remote_host_name)
+    if (!priv->remote_host_name)
     {
-        g_autofree gchar *data_dir = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), session->priv->username);
+        g_autofree gchar *data_dir = shared_data_manager_ensure_user_dir (shared_data_manager_get_instance (), priv->username);
         if (data_dir)
             session_set_env (session, "XDG_GREETER_DATA_DIR", data_dir);
     }
 
     /* Open socket to allow in-session greeter */
-    if (session->priv->config && session_config_get_allow_greeter (session->priv->config))
+    if (priv->config && session_config_get_allow_greeter (priv->config))
     {
         g_autofree gchar *run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-        g_autofree gchar *dir = g_build_filename (run_dir, session->priv->username, NULL);
+        g_autofree gchar *dir = g_build_filename (run_dir, priv->username, NULL);
 
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
             l_warning (session, "Failed to create greeter socket dir %s: %s", dir, strerror (errno));
@@ -786,93 +837,104 @@ session_real_run (Session *session)
         }
 
         g_autofree gchar *path = g_build_filename (dir, "greeter-socket", NULL);
-        session->priv->greeter_socket = greeter_socket_new (path);
-        g_signal_connect (session->priv->greeter_socket, GREETER_SOCKET_SIGNAL_CREATE_GREETER, G_CALLBACK (create_greeter_cb), session);
+        priv->greeter_socket = greeter_socket_new (path);
+        g_signal_connect (priv->greeter_socket, GREETER_SOCKET_SIGNAL_CREATE_GREETER, G_CALLBACK (create_greeter_cb), session);
         session_set_env (session, "LIGHTDM_GREETER_PIPE", path);
 
         g_autoptr(GError) error = NULL;
-        if (!greeter_socket_start (session->priv->greeter_socket, &error))
+        if (!greeter_socket_start (priv->greeter_socket, &error))
             l_warning (session, "Failed to start greeter socket: %s\n", error->message);
     }
 
-    if (session->priv->log_filename)
-        l_debug (session, "Logging to %s", session->priv->log_filename);
-    write_string (session, session->priv->log_filename);
-    write_data (session, &session->priv->log_mode, sizeof (session->priv->log_mode));
-    write_string (session, session->priv->tty);
+    if (priv->log_filename)
+        l_debug (session, "Logging to %s", priv->log_filename);
+    write_string (session, priv->log_filename);
+    write_data (session, &priv->log_mode, sizeof (priv->log_mode));
+    write_string (session, priv->tty);
     write_string (session, x_authority_filename);
-    write_string (session, session->priv->xdisplay);
-    write_xauth (session, session->priv->x_authority);
-    gsize argc = g_list_length (session->priv->env);
+    write_string (session, priv->xdisplay);
+    write_xauth (session, priv->x_authority);
+    gsize argc = g_list_length (priv->env);
     write_data (session, &argc, sizeof (argc));
-    for (GList *link = session->priv->env; link; link = link->next)
+    for (GList *link = priv->env; link; link = link->next)
         write_string (session, (gchar *) link->data);
-    argc = g_strv_length (session->priv->argv);
+    argc = g_strv_length (priv->argv);
     write_data (session, &argc, sizeof (argc));
     for (gsize i = 0; i < argc; i++)
-        write_string (session, session->priv->argv[i]);
+        write_string (session, priv->argv[i]);
 
-    session->priv->login1_session_id = read_string_from_child (session);
-    session->priv->console_kit_cookie = read_string_from_child (session);
+    priv->login1_session_id = read_string_from_child (session);
+    priv->console_kit_cookie = read_string_from_child (session);
 }
 
 void
 session_lock (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
+
     if (getuid () == 0)
     {
-        if (session->priv->login1_session_id)
-            login1_service_lock_session (login1_service_get_instance (), session->priv->login1_session_id);
-        else if (session->priv->console_kit_cookie)
-            ck_lock_session (session->priv->console_kit_cookie);
+        if (priv->login1_session_id)
+            login1_service_lock_session (login1_service_get_instance (), priv->login1_session_id);
+        else if (priv->console_kit_cookie)
+            ck_lock_session (priv->console_kit_cookie);
     }
 }
 
 void
 session_unlock (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
+
     if (getuid () == 0)
     {
-        if (session->priv->login1_session_id)
-            login1_service_unlock_session (login1_service_get_instance (), session->priv->login1_session_id);
-        else if (session->priv->console_kit_cookie)
-            ck_unlock_session (session->priv->console_kit_cookie);
+        if (priv->login1_session_id)
+            login1_service_unlock_session (login1_service_get_instance (), priv->login1_session_id);
+        else if (priv->console_kit_cookie)
+            ck_unlock_session (priv->console_kit_cookie);
     }
 }
 
 void
 session_activate (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
+
     if (getuid () == 0)
     {
-        if (session->priv->login1_session_id)
-            login1_service_activate_session (login1_service_get_instance (), session->priv->login1_session_id);
-        else if (session->priv->console_kit_cookie)
-            ck_activate_session (session->priv->console_kit_cookie);
+        if (priv->login1_session_id)
+            login1_service_activate_session (login1_service_get_instance (), priv->login1_session_id);
+        else if (priv->console_kit_cookie)
+            ck_activate_session (priv->console_kit_cookie);
     }
 }
 
 void
 session_stop (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
 
-    if (session->priv->stopping)
+    if (priv->stopping)
         return;
-    session->priv->stopping = TRUE;
+    priv->stopping = TRUE;
 
     /* Kill remaining processes in our logind session to avoid them leaking
      * to the user session (they share the same $DISPLAY) */
-    if (getuid () == 0 && session->priv->login1_session_id)
-        login1_service_terminate_session (login1_service_get_instance (), session->priv->login1_session_id);
+    if (getuid () == 0 && priv->login1_session_id)
+        login1_service_terminate_session (login1_service_get_instance (), priv->login1_session_id);
 
     /* If can cleanly stop then do that */
-    if (session_get_is_authenticated (session) && !session->priv->command_run)
+    if (session_get_is_authenticated (session) && !priv->command_run)
     {
-        session->priv->command_run = TRUE;
+        priv->command_run = TRUE;
         write_string (session, NULL); // log filename
         LogMode log_mode = LOG_MODE_INVALID;
         write_data (session, &log_mode, sizeof (log_mode)); // log mode
@@ -892,12 +954,14 @@ session_stop (Session *session)
 static void
 session_real_stop (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
 
-    if (session->priv->pid > 0)
+    if (priv->pid > 0)
     {
         l_debug (session, "Sending SIGTERM");
-        kill (session->priv->pid, SIGTERM);
+        kill (priv->pid, SIGTERM);
         // FIXME: Handle timeout
     }
     else
@@ -907,52 +971,55 @@ session_real_stop (Session *session)
 gboolean
 session_get_is_stopping (Session *session)
 {
+    SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, FALSE);
-    return session->priv->stopping;
+    return priv->stopping;
 }
 
 static void
 session_init (Session *session)
 {
-    session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, SESSION_TYPE, SessionPrivate);
-    session->priv->log_filename = g_strdup (".xsession-errors");
-    session->priv->log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
-    session->priv->to_child_input = -1;
-    session->priv->from_child_output = -1;
+    SessionPrivate *priv = session_get_instance_private (session);
+
+    priv->log_filename = g_strdup (".xsession-errors");
+    priv->log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
+    priv->to_child_input = -1;
+    priv->from_child_output = -1;
 }
 
 static void
 session_finalize (GObject *object)
 {
     Session *self = SESSION (object);
+    SessionPrivate *priv = session_get_instance_private (self);
 
-    g_clear_object (&self->priv->config);
-    g_clear_object (&self->priv->display_server);
-    if (self->priv->pid)
-        kill (self->priv->pid, SIGKILL);
-    close (self->priv->to_child_input);
-    close (self->priv->from_child_output);
-    g_clear_pointer (&self->priv->from_child_channel, g_io_channel_unref);
-    if (self->priv->from_child_watch)
-        g_source_remove (self->priv->from_child_watch);
-    if (self->priv->child_watch)
-        g_source_remove (self->priv->child_watch);
-    g_clear_pointer (&self->priv->username, g_free);
-    g_clear_object (&self->priv->user);
-    g_clear_pointer (&self->priv->pam_service, g_free);
-    for (int i = 0; i < self->priv->messages_length; i++)
-        g_free ((char *) self->priv->messages[i].msg);
-    g_clear_pointer (&self->priv->messages, g_free);
-    g_clear_pointer (&self->priv->authentication_result_string, g_free);
-    g_clear_pointer (&self->priv->log_filename, g_free);
-    g_clear_pointer (&self->priv->tty, g_free);
-    g_clear_pointer (&self->priv->xdisplay, g_free);
-    g_clear_object (&self->priv->x_authority);
-    g_clear_pointer (&self->priv->remote_host_name, g_free);
-    g_clear_pointer (&self->priv->login1_session_id, g_free);
-    g_clear_pointer (&self->priv->console_kit_cookie, g_free);
-    g_list_free_full (self->priv->env, g_free);
-    g_clear_pointer (&self->priv->argv, g_strfreev);
+    g_clear_object (&priv->config);
+    g_clear_object (&priv->display_server);
+    if (priv->pid)
+        kill (priv->pid, SIGKILL);
+    close (priv->to_child_input);
+    close (priv->from_child_output);
+    g_clear_pointer (&priv->from_child_channel, g_io_channel_unref);
+    if (priv->from_child_watch)
+        g_source_remove (priv->from_child_watch);
+    if (priv->child_watch)
+        g_source_remove (priv->child_watch);
+    g_clear_pointer (&priv->username, g_free);
+    g_clear_object (&priv->user);
+    g_clear_pointer (&priv->pam_service, g_free);
+    for (int i = 0; i < priv->messages_length; i++)
+        g_free ((char *) priv->messages[i].msg);
+    g_clear_pointer (&priv->messages, g_free);
+    g_clear_pointer (&priv->authentication_result_string, g_free);
+    g_clear_pointer (&priv->log_filename, g_free);
+    g_clear_pointer (&priv->tty, g_free);
+    g_clear_pointer (&priv->xdisplay, g_free);
+    g_clear_object (&priv->x_authority);
+    g_clear_pointer (&priv->remote_host_name, g_free);
+    g_clear_pointer (&priv->login1_session_id, g_free);
+    g_clear_pointer (&priv->console_kit_cookie, g_free);
+    g_list_free_full (priv->env, g_free);
+    g_clear_pointer (&priv->argv, g_strfreev);
 
     G_OBJECT_CLASS (session_parent_class)->finalize (object);
 }
@@ -1009,8 +1076,10 @@ static gint
 session_real_logprefix (Logger *self, gchar *buf, gulong buflen)
 {
     Session *session = SESSION (self);
-    if (session->priv->pid != 0)
-        return g_snprintf (buf, buflen, "Session pid=%d: ", session->priv->pid);
+    SessionPrivate *priv = session_get_instance_private (session);
+
+    if (priv->pid != 0)
+        return g_snprintf (buf, buflen, "Session pid=%d: ", priv->pid);
     else
         return g_snprintf (buf, buflen, "Session: ");
 }

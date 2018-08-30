@@ -29,12 +29,9 @@ G_BEGIN_DECLS
 #define DISPLAY_SERVER_SIGNAL_READY   "ready"
 #define DISPLAY_SERVER_SIGNAL_STOPPED "stopped"
 
-typedef struct DisplayServerPrivate DisplayServerPrivate;
-
 struct DisplayServer
 {
-    GObject               parent_instance;
-    DisplayServerPrivate *priv;
+    GObject parent_instance;
 };
 
 typedef struct

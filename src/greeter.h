@@ -32,12 +32,9 @@ G_BEGIN_DECLS
 
 #define GREETER_SIGNAL_ACTIVE_USERNAME_CHANGED "notify::" GREETER_PROPERTY_ACTIVE_USERNAME
 
-typedef struct GreeterPrivate GreeterPrivate;
-
 struct Greeter
 {
-    GObject         parent_instance;
-    GreeterPrivate *priv;
+    GObject parent_instance;
 };
 
 typedef struct

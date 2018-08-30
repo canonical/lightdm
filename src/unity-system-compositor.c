@@ -24,7 +24,7 @@
 #include "greeter-session.h"
 #include "vt.h"
 
-struct UnitySystemCompositorPrivate
+typedef struct
 {
     /* Compositor process */
     Process *process;
@@ -62,7 +62,7 @@ struct UnitySystemCompositorPrivate
     /* Counters for Mir IDs to use */
     int next_session_id;
     int next_greeter_id;  
-};
+} UnitySystemCompositorPrivate;
 
 static void unity_system_compositor_logger_iface_init (LoggerInterface *iface);
 
@@ -89,54 +89,63 @@ unity_system_compositor_new (void)
 void
 unity_system_compositor_set_command (UnitySystemCompositor *compositor, const gchar *command)
 {
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
+
     g_return_if_fail (compositor != NULL);
     g_return_if_fail (command != NULL);
 
-    g_free (compositor->priv->command);
-    compositor->priv->command = g_strdup (command);
+    g_free (priv->command);
+    priv->command = g_strdup (command);
 }
 
 void
 unity_system_compositor_set_socket (UnitySystemCompositor *compositor, const gchar *socket)
 {
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
     g_return_if_fail (compositor != NULL);
-    g_free (compositor->priv->socket);
-    compositor->priv->socket = g_strdup (socket);
+    g_free (priv->socket);
+    priv->socket = g_strdup (socket);
 }
 
 const gchar *
 unity_system_compositor_get_socket (UnitySystemCompositor *compositor)
 {
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
     g_return_val_if_fail (compositor != NULL, NULL);
-    return compositor->priv->socket;
+    return priv->socket;
 }
 
 void
 unity_system_compositor_set_vt (UnitySystemCompositor *compositor, gint vt)
 {
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
+
     g_return_if_fail (compositor != NULL);
 
-    if (compositor->priv->have_vt_ref)
-        vt_unref (compositor->priv->vt);
-    compositor->priv->have_vt_ref = FALSE;
-    compositor->priv->vt = vt;
+    if (priv->have_vt_ref)
+        vt_unref (priv->vt);
+    priv->have_vt_ref = FALSE;
+    priv->vt = vt;
     if (vt > 0)
     {
         vt_ref (vt);
-        compositor->priv->have_vt_ref = TRUE;
+        priv->have_vt_ref = TRUE;
     }
 }
 
 void
 unity_system_compositor_set_timeout (UnitySystemCompositor *compositor, gint timeout)
 {
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
     g_return_if_fail (compositor != NULL);
-    compositor->priv->timeout = timeout;
+    priv->timeout = timeout;
 }
 
 static void
 write_message (UnitySystemCompositor *compositor, guint16 id, const guint8 *payload, guint16 payload_length)
 {
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
+
     gsize data_length = 4 + payload_length;
     g_autofree guint8 *data = g_malloc (data_length);
     data[0] = id >> 8;
@@ -147,7 +156,7 @@ write_message (UnitySystemCompositor *compositor, guint16 id, const guint8 *payl
         memcpy (data + 4, payload, payload_length);
 
     errno = 0;
-    if (write (compositor->priv->to_compositor_pipe[1], data, data_length) != data_length)
+    if (write (priv->to_compositor_pipe[1], data, data_length) != data_length)
         l_warning (compositor, "Failed to write to compositor: %s", strerror (errno));
 }
 
@@ -168,39 +177,41 @@ unity_system_compositor_set_next_session (UnitySystemCompositor *compositor, con
 static gint
 unity_system_compositor_get_vt (DisplayServer *server)
 {
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (UNITY_SYSTEM_COMPOSITOR (server));
     g_return_val_if_fail (server != NULL, 0);
-    return UNITY_SYSTEM_COMPOSITOR (server)->priv->vt;
+    return priv->vt;
 }
 
 static void
 unity_system_compositor_connect_session (DisplayServer *display_server, Session *session)
 {
     UnitySystemCompositor *compositor = UNITY_SYSTEM_COMPOSITOR (display_server);
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
 
     session_set_env (session, "XDG_SESSION_TYPE", "mir");
 
-    if (compositor->priv->socket)
-        session_set_env (session, "MIR_SERVER_HOST_SOCKET", compositor->priv->socket);
+    if (priv->socket)
+        session_set_env (session, "MIR_SERVER_HOST_SOCKET", priv->socket);
 
     if (!session_get_env (session, "MIR_SERVER_NAME"))
     {
         g_autofree gchar *name = NULL;
         if (IS_GREETER_SESSION (session))
         {
-            name = g_strdup_printf ("greeter-%d", compositor->priv->next_greeter_id);
-            compositor->priv->next_greeter_id++;
+            name = g_strdup_printf ("greeter-%d", priv->next_greeter_id);
+            priv->next_greeter_id++;
         }
         else
         {
-            name = g_strdup_printf ("session-%d", compositor->priv->next_session_id);
-            compositor->priv->next_session_id++;
+            name = g_strdup_printf ("session-%d", priv->next_session_id);
+            priv->next_session_id++;
         }
         session_set_env (session, "MIR_SERVER_NAME", name);
     }
 
-    if (compositor->priv->vt >= 0)
+    if (priv->vt >= 0)
     {
-        g_autofree gchar *value = g_strdup_printf ("%d", compositor->priv->vt);
+        g_autofree gchar *value = g_strdup_printf ("%d", priv->vt);
         session_set_env (session, "XDG_VTNR", value);
     }
 }
@@ -236,35 +247,36 @@ static gboolean
 read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 {
     UnitySystemCompositor *compositor = data;
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
 
     if (condition == G_IO_HUP)
     {
         l_debug (compositor, "Compositor closed communication channel");
-        compositor->priv->from_compositor_watch = 0;
+        priv->from_compositor_watch = 0;
         return FALSE;
     }
 
     /* Work out how much required for a message */
     gsize n_to_read = 0;
-    if (compositor->priv->read_buffer_n_used < 4)
-        n_to_read = 4 - compositor->priv->read_buffer_n_used;
+    if (priv->read_buffer_n_used < 4)
+        n_to_read = 4 - priv->read_buffer_n_used;
     else
     {
-        guint16 payload_length = compositor->priv->read_buffer[2] << 8 | compositor->priv->read_buffer[3];
-        n_to_read = 4 + payload_length - compositor->priv->read_buffer_n_used;
+        guint16 payload_length = priv->read_buffer[2] << 8 | priv->read_buffer[3];
+        n_to_read = 4 + payload_length - priv->read_buffer_n_used;
     }
 
     /* Read from compositor */
     if (n_to_read > 0)
     {
-        gsize n_total = compositor->priv->read_buffer_n_used + n_to_read;
-        if (compositor->priv->read_buffer_length < n_total)
-            compositor->priv->read_buffer = g_realloc (compositor->priv->read_buffer, n_total);
+        gsize n_total = priv->read_buffer_n_used + n_to_read;
+        if (priv->read_buffer_length < n_total)
+            priv->read_buffer = g_realloc (priv->read_buffer, n_total);
 
         g_autoptr(GError) error = NULL;
         gsize n_read = 0;
         GIOStatus status = g_io_channel_read_chars (source,
-                                                    (gchar *)compositor->priv->read_buffer + compositor->priv->read_buffer_n_used,
+                                                    (gchar *)priv->read_buffer + priv->read_buffer_n_used,
                                                     n_to_read,
                                                     &n_read,
                                                     &error);
@@ -272,19 +284,19 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             l_warning (compositor, "Failed to read from compositor: %s", error->message);
         if (status != G_IO_STATUS_NORMAL)
             return TRUE;
-        compositor->priv->read_buffer_n_used += n_read;
+        priv->read_buffer_n_used += n_read;
     }
 
     /* Read header */
-    if (compositor->priv->read_buffer_n_used < 4)
+    if (priv->read_buffer_n_used < 4)
          return TRUE;
-    guint16 id = compositor->priv->read_buffer[0] << 8 | compositor->priv->read_buffer[1];
-    guint16 payload_length = compositor->priv->read_buffer[2] << 8 | compositor->priv->read_buffer[3];
+    guint16 id = priv->read_buffer[0] << 8 | priv->read_buffer[1];
+    guint16 payload_length = priv->read_buffer[2] << 8 | priv->read_buffer[3];
 
     /* Read payload */
-    if (compositor->priv->read_buffer_n_used < 4 + payload_length)
+    if (priv->read_buffer_n_used < 4 + payload_length)
         return TRUE;
-    /*guint8 *payload = compositor->priv->read_buffer + 4;*/
+    /*guint8 *payload = priv->read_buffer + 4;*/
 
     switch (id)
     {
@@ -297,12 +309,12 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
         break;
     case USC_MESSAGE_READY:
         l_debug (compositor, "READY");
-        if (!compositor->priv->is_ready)
+        if (!priv->is_ready)
         {
-            compositor->priv->is_ready = TRUE;
+            priv->is_ready = TRUE;
             l_debug (compositor, "Compositor ready");
-            g_source_remove (compositor->priv->timeout_source);
-            compositor->priv->timeout_source = 0;
+            g_source_remove (priv->timeout_source);
+            priv->timeout_source = 0;
             DISPLAY_SERVER_CLASS (unity_system_compositor_parent_class)->start (DISPLAY_SERVER (compositor));
         }
         break;
@@ -315,7 +327,7 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     }
 
     /* Clear buffer */
-    compositor->priv->read_buffer_n_used = 0;
+    priv->read_buffer_n_used = 0;
 
     return TRUE;
 }
@@ -333,11 +345,12 @@ static gboolean
 timeout_cb (gpointer data)
 {
     UnitySystemCompositor *compositor = data;
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
 
     /* Stop the compositor - it is not working */
     display_server_stop (DISPLAY_SERVER (compositor));
 
-    compositor->priv->timeout_source = 0;
+    priv->timeout_source = 0;
 
     return TRUE;
 }
@@ -345,17 +358,19 @@ timeout_cb (gpointer data)
 static void
 stopped_cb (Process *process, UnitySystemCompositor *compositor)
 {
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
+
     l_debug (compositor, "Unity system compositor stopped");
 
-    if (compositor->priv->timeout_source != 0)
-        g_source_remove (compositor->priv->timeout_source);
-    compositor->priv->timeout_source = 0;
+    if (priv->timeout_source != 0)
+        g_source_remove (priv->timeout_source);
+    priv->timeout_source = 0;
 
     /* Release VT and display number for re-use */
-    if (compositor->priv->have_vt_ref)
+    if (priv->have_vt_ref)
     {
-        vt_unref (compositor->priv->vt);
-        compositor->priv->have_vt_ref = FALSE;
+        vt_unref (priv->vt);
+        priv->have_vt_ref = FALSE;
     }
 
     DISPLAY_SERVER_CLASS (unity_system_compositor_parent_class)->stop (DISPLAY_SERVER (compositor));
@@ -365,27 +380,28 @@ static gboolean
 unity_system_compositor_start (DisplayServer *server)
 {
     UnitySystemCompositor *compositor = UNITY_SYSTEM_COMPOSITOR (server);
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
 
-    g_return_val_if_fail (compositor->priv->process == NULL, FALSE);
+    g_return_val_if_fail (priv->process == NULL, FALSE);
 
-    compositor->priv->is_ready = FALSE;
+    priv->is_ready = FALSE;
 
-    g_return_val_if_fail (compositor->priv->command != NULL, FALSE);
+    g_return_val_if_fail (priv->command != NULL, FALSE);
 
     /* Create pipes to talk to compositor */
-    if (pipe (compositor->priv->to_compositor_pipe) < 0 || pipe (compositor->priv->from_compositor_pipe) < 0)
+    if (pipe (priv->to_compositor_pipe) < 0 || pipe (priv->from_compositor_pipe) < 0)
     {
         l_debug (compositor, "Failed to create compositor pipes: %s", g_strerror (errno));
         return FALSE;
     }
 
     /* Don't allow the daemon end of the pipes to be accessed in the compositor */
-    fcntl (compositor->priv->to_compositor_pipe[1], F_SETFD, FD_CLOEXEC);
-    fcntl (compositor->priv->from_compositor_pipe[0], F_SETFD, FD_CLOEXEC);
+    fcntl (priv->to_compositor_pipe[1], F_SETFD, FD_CLOEXEC);
+    fcntl (priv->from_compositor_pipe[0], F_SETFD, FD_CLOEXEC);
 
     /* Listen for messages from the compositor */
-    compositor->priv->from_compositor_channel = g_io_channel_unix_new (compositor->priv->from_compositor_pipe[0]);
-    compositor->priv->from_compositor_watch = g_io_add_watch (compositor->priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, compositor);
+    priv->from_compositor_channel = g_io_channel_unix_new (priv->from_compositor_pipe[0]);
+    priv->from_compositor_watch = g_io_add_watch (priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, compositor);
 
     /* Setup logging */
     g_autofree gchar *dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
@@ -393,53 +409,53 @@ unity_system_compositor_start (DisplayServer *server)
     l_debug (compositor, "Logging to %s", log_file);
 
     /* Setup environment */
-    compositor->priv->process = process_new (run_cb, compositor);
+    priv->process = process_new (run_cb, compositor);
     gboolean backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
-    process_set_log_file (compositor->priv->process, log_file, TRUE, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
-    process_set_clear_environment (compositor->priv->process, TRUE);
-    process_set_env (compositor->priv->process, "XDG_SEAT", "seat0");
-    g_autofree gchar *value = g_strdup_printf ("%d", compositor->priv->vt);
-    process_set_env (compositor->priv->process, "XDG_VTNR", value);
+    process_set_log_file (priv->process, log_file, TRUE, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
+    process_set_clear_environment (priv->process, TRUE);
+    process_set_env (priv->process, "XDG_SEAT", "seat0");
+    g_autofree gchar *value = g_strdup_printf ("%d", priv->vt);
+    process_set_env (priv->process, "XDG_VTNR", value);
     /* Variable required for regression tests */
     if (g_getenv ("LIGHTDM_TEST_ROOT"))
     {
-        process_set_env (compositor->priv->process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
-        process_set_env (compositor->priv->process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
-        process_set_env (compositor->priv->process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
+        process_set_env (priv->process, "LIGHTDM_TEST_ROOT", g_getenv ("LIGHTDM_TEST_ROOT"));
+        process_set_env (priv->process, "LD_PRELOAD", g_getenv ("LD_PRELOAD"));
+        process_set_env (priv->process, "LD_LIBRARY_PATH", g_getenv ("LD_LIBRARY_PATH"));
     }
 
     /* Generate command line to run */
-    g_autofree gchar *absolute_command = get_absolute_command (compositor->priv->command);
+    g_autofree gchar *absolute_command = get_absolute_command (priv->command);
     if (!absolute_command)
     {
-        l_debug (compositor, "Can't launch compositor %s, not found in path", compositor->priv->command);
+        l_debug (compositor, "Can't launch compositor %s, not found in path", priv->command);
         return FALSE;
     }
     g_autoptr(GString) command = g_string_new (absolute_command);
-    g_string_append_printf (command, " --file '%s'", compositor->priv->socket);
-    g_string_append_printf (command, " --from-dm-fd %d --to-dm-fd %d", compositor->priv->to_compositor_pipe[0], compositor->priv->from_compositor_pipe[1]);
-    if (compositor->priv->vt > 0)
-        g_string_append_printf (command, " --vt %d", compositor->priv->vt);
-    process_set_command (compositor->priv->process, command->str);
+    g_string_append_printf (command, " --file '%s'", priv->socket);
+    g_string_append_printf (command, " --from-dm-fd %d --to-dm-fd %d", priv->to_compositor_pipe[0], priv->from_compositor_pipe[1]);
+    if (priv->vt > 0)
+        g_string_append_printf (command, " --vt %d", priv->vt);
+    process_set_command (priv->process, command->str);
 
     /* Start the compositor */
-    g_signal_connect (compositor->priv->process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), compositor);
-    gboolean result = process_start (compositor->priv->process, FALSE);
+    g_signal_connect (priv->process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), compositor);
+    gboolean result = process_start (priv->process, FALSE);
 
     /* Close compositor ends of the pipes */
-    close (compositor->priv->to_compositor_pipe[0]);
-    compositor->priv->to_compositor_pipe[0] = -1;
-    close (compositor->priv->from_compositor_pipe[1]);
-    compositor->priv->from_compositor_pipe[1] = -1;
+    close (priv->to_compositor_pipe[0]);
+    priv->to_compositor_pipe[0] = -1;
+    close (priv->from_compositor_pipe[1]);
+    priv->from_compositor_pipe[1] = -1;
 
     if (!result)
         return FALSE;
 
     /* Connect to the compositor */
-    if (compositor->priv->timeout > 0)
+    if (priv->timeout > 0)
     {
-        l_debug (compositor, "Waiting for system compositor for %ds", compositor->priv->timeout);
-        compositor->priv->timeout_source = g_timeout_add (compositor->priv->timeout * 1000, timeout_cb, compositor);
+        l_debug (compositor, "Waiting for system compositor for %ds", priv->timeout);
+        priv->timeout_source = g_timeout_add (priv->timeout * 1000, timeout_cb, compositor);
     }
 
     return TRUE;
@@ -448,45 +464,47 @@ unity_system_compositor_start (DisplayServer *server)
 static void
 unity_system_compositor_stop (DisplayServer *server)
 {
-    process_stop (UNITY_SYSTEM_COMPOSITOR (server)->priv->process);
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (UNITY_SYSTEM_COMPOSITOR (server));
+    process_stop (priv->process);
 }
 
 static void
 unity_system_compositor_init (UnitySystemCompositor *compositor)
 {
-    compositor->priv = G_TYPE_INSTANCE_GET_PRIVATE (compositor, UNITY_SYSTEM_COMPOSITOR_TYPE, UnitySystemCompositorPrivate);
-    compositor->priv->vt = -1;
-    compositor->priv->command = g_strdup ("unity-system-compositor");
-    compositor->priv->socket = g_strdup ("/run/mir_socket");
-    compositor->priv->timeout = -1;
-    compositor->priv->to_compositor_pipe[0] = -1;
-    compositor->priv->to_compositor_pipe[1] = -1;
-    compositor->priv->from_compositor_pipe[0] = -1;
-    compositor->priv->from_compositor_pipe[1] = -1;
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (compositor);
+    priv->vt = -1;
+    priv->command = g_strdup ("unity-system-compositor");
+    priv->socket = g_strdup ("/run/mir_socket");
+    priv->timeout = -1;
+    priv->to_compositor_pipe[0] = -1;
+    priv->to_compositor_pipe[1] = -1;
+    priv->from_compositor_pipe[0] = -1;
+    priv->from_compositor_pipe[1] = -1;
 }
 
 static void
 unity_system_compositor_finalize (GObject *object)
 {
     UnitySystemCompositor *self = UNITY_SYSTEM_COMPOSITOR (object);
+    UnitySystemCompositorPrivate *priv = unity_system_compositor_get_instance_private (self);
 
-    if (self->priv->process)
-        g_signal_handlers_disconnect_matched (self->priv->process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-    g_clear_object (&self->priv->process);
-    g_clear_pointer (&self->priv->command, g_free);
-    g_clear_pointer (&self->priv->socket, g_free);
-    if (self->priv->have_vt_ref)
-        vt_unref (self->priv->vt);
-    close (self->priv->to_compositor_pipe[0]);
-    close (self->priv->to_compositor_pipe[1]);
-    close (self->priv->from_compositor_pipe[0]);
-    close (self->priv->from_compositor_pipe[1]);
-    g_clear_pointer (&self->priv->from_compositor_channel, g_io_channel_unref);
-    if (self->priv->from_compositor_watch)
-        g_source_remove (self->priv->from_compositor_watch);
-    g_clear_pointer (&self->priv->read_buffer, g_free);
-    if (self->priv->timeout_source)
-        g_source_remove (self->priv->timeout_source);
+    if (priv->process)
+        g_signal_handlers_disconnect_matched (priv->process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+    g_clear_object (&priv->process);
+    g_clear_pointer (&priv->command, g_free);
+    g_clear_pointer (&priv->socket, g_free);
+    if (priv->have_vt_ref)
+        vt_unref (priv->vt);
+    close (priv->to_compositor_pipe[0]);
+    close (priv->to_compositor_pipe[1]);
+    close (priv->from_compositor_pipe[0]);
+    close (priv->from_compositor_pipe[1]);
+    g_clear_pointer (&priv->from_compositor_channel, g_io_channel_unref);
+    if (priv->from_compositor_watch)
+        g_source_remove (priv->from_compositor_watch);
+    g_clear_pointer (&priv->read_buffer, g_free);
+    if (priv->timeout_source)
+        g_source_remove (priv->timeout_source);
 
     G_OBJECT_CLASS (unity_system_compositor_parent_class)->finalize (object);
 }

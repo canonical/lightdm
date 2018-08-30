@@ -16,11 +16,11 @@
 #include "accounts.h"
 #include "user-list.h"
 
-struct UserPrivate
+typedef struct
 {
     /* Internal user object */
     CommonUser *common_user;
-};
+} UserPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (User, user, G_TYPE_OBJECT)
 
@@ -34,7 +34,8 @@ accounts_get_user_by_name (const gchar *username)
         return NULL;
 
     User *user = g_object_new (USER_TYPE, NULL);
-    user->priv->common_user = common_user;
+    UserPrivate *priv = user_get_instance_private (user);
+    priv->common_user = common_user;
     return user;
 }
 
@@ -51,78 +52,87 @@ accounts_get_current_user ()
 const gchar *
 user_get_name (User *user)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_val_if_fail (user != NULL, NULL);
-    return common_user_get_name (user->priv->common_user);
+    return common_user_get_name (priv->common_user);
 }
 
 uid_t
 user_get_uid (User *user)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_val_if_fail (user != NULL, 0);
-    return common_user_get_uid (user->priv->common_user);
+    return common_user_get_uid (priv->common_user);
 }
 
 gid_t
 user_get_gid (User *user)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_val_if_fail (user != NULL, 0);
-    return common_user_get_gid (user->priv->common_user);
+    return common_user_get_gid (priv->common_user);
 }
 
 const gchar *
 user_get_home_directory (User *user)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_val_if_fail (user != NULL, NULL);
-    return common_user_get_home_directory (user->priv->common_user);
+    return common_user_get_home_directory (priv->common_user);
 }
 
 const gchar *
 user_get_shell (User *user)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_val_if_fail (user != NULL, NULL);
-    return common_user_get_shell (user->priv->common_user);
+    return common_user_get_shell (priv->common_user);
 }
 
 void
 user_set_language (User *user, const gchar *language)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_if_fail (user != NULL);
-    common_user_set_language (user->priv->common_user, language);
+    common_user_set_language (priv->common_user, language);
 }
 
 const gchar *
 user_get_language (User *user)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_val_if_fail (user != NULL, NULL);
-    return common_user_get_language (user->priv->common_user);
+    return common_user_get_language (priv->common_user);
 }
 
 void
 user_set_xsession (User *user, const gchar *xsession)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_if_fail (user != NULL);
-    common_user_set_session (user->priv->common_user, xsession);
+    common_user_set_session (priv->common_user, xsession);
 }
 
 const gchar *
 user_get_xsession (User *user)
 {
+    UserPrivate *priv = user_get_instance_private (user);
     g_return_val_if_fail (user != NULL, NULL);
-    return common_user_get_session (user->priv->common_user);
+    return common_user_get_session (priv->common_user);
 }
 
 static void
 user_init (User *user)
 {
-    user->priv = G_TYPE_INSTANCE_GET_PRIVATE (user, USER_TYPE, UserPrivate);
 }
 
 static void
 user_finalize (GObject *object)
 {
     User *self = USER (object);
+    UserPrivate *priv = user_get_instance_private (self);
 
-    g_clear_object (&self->priv->common_user);
+    g_clear_object (&priv->common_user);
 
     G_OBJECT_CLASS (user_parent_class)->finalize (object);
 }

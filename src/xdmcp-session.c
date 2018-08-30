@@ -10,16 +10,35 @@
  */
 
 #include "xdmcp-session.h"
-#include "xdmcp-session-private.h"
+#include "x-authority.h"
+
+typedef struct
+{
+    guint16 id;
+
+    GInetAddress *address;
+
+    guint inactive_timeout;
+
+    XAuthority *authority;
+
+    guint16 display_number;
+
+    gchar *display_class;
+} XDMCPSessionPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XDMCPSession, xdmcp_session, G_TYPE_OBJECT)
 
 XDMCPSession *
-xdmcp_session_new (guint16 id)
+xdmcp_session_new (guint16 id, GInetAddress *address, guint16 display_number, XAuthority *authority)
 {
     XDMCPSession *self = g_object_new (XDMCP_SESSION_TYPE, NULL);
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (self);
 
-    self->priv->id = id;
+    priv->id = id;
+    priv->address = g_object_ref (address);
+    priv->display_number = display_number;
+    priv->authority = g_object_ref (authority);
 
     return self;
 }
@@ -27,62 +46,69 @@ xdmcp_session_new (guint16 id)
 guint16
 xdmcp_session_get_id (XDMCPSession *session)
 {
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, 0);
-    return session->priv->id;
-}
-
-const gchar *
-xdmcp_session_get_manufacturer_display_id (XDMCPSession *session)
-{
-    g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->manufacturer_display_id;
+    return priv->id;
 }
 
 GInetAddress *
 xdmcp_session_get_address (XDMCPSession *session)
 {
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->address;
-}
-
-XAuthority *
-xdmcp_session_get_authority (XDMCPSession *session)
-{
-    g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->authority;
+    return priv->address;
 }
 
 guint16
 xdmcp_session_get_display_number (XDMCPSession *session)
 {
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, 0);
-    return session->priv->display_number;
+    return priv->display_number;
+}
+
+XAuthority *
+xdmcp_session_get_authority (XDMCPSession *session)
+{
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (session);
+    g_return_val_if_fail (session != NULL, NULL);
+    return priv->authority;
+}
+
+void
+xdmcp_session_set_display_class (XDMCPSession *session, const gchar *display_class)
+{
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (session);
+    g_return_if_fail (session != NULL);
+    g_free (priv->display_class);
+    priv->display_class = g_strdup (display_class);
 }
 
 const gchar *
 xdmcp_session_get_display_class (XDMCPSession *session)
 {
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->display_class;
+    return priv->display_class;
 }
 
 static void
 xdmcp_session_init (XDMCPSession *session)
 {
-    session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, XDMCP_SESSION_TYPE, XDMCPSessionPrivate);
-    session->priv->manufacturer_display_id = g_strdup ("");
-    session->priv->display_class = g_strdup ("");
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (session);
+
+    priv->display_class = g_strdup ("");
 }
 
 static void
 xdmcp_session_finalize (GObject *object)
 {
     XDMCPSession *self = XDMCP_SESSION (object);
+    XDMCPSessionPrivate *priv = xdmcp_session_get_instance_private (self);
 
-    g_clear_pointer (&self->priv->manufacturer_display_id, g_free);
-    g_clear_object (&self->priv->address);
-    g_clear_object (&self->priv->authority);
-    g_clear_pointer (&self->priv->display_class, g_free);
+    g_clear_object (&priv->address);
+    g_clear_object (&priv->authority);
+    g_clear_pointer (&priv->display_class, g_free);
 
     G_OBJECT_CLASS (xdmcp_session_parent_class)->finalize (object);
 }

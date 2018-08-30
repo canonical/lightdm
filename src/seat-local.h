@@ -20,12 +20,9 @@ G_BEGIN_DECLS
 #define SEAT_LOCAL_TYPE (seat_local_get_type())
 #define SEAT_LOCAL(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_LOCAL_TYPE, SeatLocal))
 
-typedef struct SeatLocalPrivate SeatLocalPrivate;
-
 typedef struct
 {
-    Seat              parent_instance;
-    SeatLocalPrivate *priv;
+    Seat parent_instance;
 } SeatLocal;
 
 typedef struct

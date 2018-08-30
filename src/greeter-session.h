@@ -23,12 +23,9 @@ G_BEGIN_DECLS
 #define GREETER_SESSION_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), GREETER_SESSION_TYPE, GreeterSessionClass))
 #define IS_GREETER_SESSION(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GREETER_SESSION_TYPE))
 
-typedef struct GreeterSessionPrivate GreeterSessionPrivate;
-
 typedef struct
 {
-    Session                parent_instance;
-    GreeterSessionPrivate *priv;
+    Session parent_instance;
 } GreeterSession;
 
 typedef struct

@@ -21,7 +21,7 @@
 #include "vt.h"
 #include "plymouth.h"
 
-struct SeatUnityPrivate
+typedef struct
 {
     /* System compositor */
     UnitySystemCompositor *compositor;
@@ -35,7 +35,7 @@ struct SeatUnityPrivate
     /* The currently visible session */
     Session *active_session;
     DisplayServer *active_display_server;
-};
+} SeatUnityPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SeatUnity, seat_unity, SEAT_TYPE)
 
@@ -51,17 +51,20 @@ seat_unity_setup (Seat *seat)
 static void
 check_stopped (SeatUnity *seat)
 {
-    if (!seat->priv->compositor && !seat->priv->xdmcp_x_server)
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (seat);
+    if (!priv->compositor && !priv->xdmcp_x_server)
         SEAT_CLASS (seat_unity_parent_class)->stop (SEAT (seat));
 }
 
 static void
 xdmcp_x_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
     l_debug (seat, "XDMCP X server stopped");
 
-    g_signal_handlers_disconnect_matched (SEAT_UNITY (seat)->priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    SEAT_UNITY (seat)->priv->xdmcp_x_server = NULL;
+    g_signal_handlers_disconnect_matched (priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+    priv->xdmcp_x_server = NULL;
 
     g_object_unref (display_server);
 
@@ -74,17 +77,19 @@ xdmcp_x_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 static void
 compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (seat);
+
     l_debug (seat, "Compositor ready");
 
     /* If running as an XDMCP client then just start an X server */
     const gchar *xdmcp_manager = seat_get_string_property (SEAT (seat), "xdmcp-manager");
     if (xdmcp_manager)
     {
-        seat->priv->xdmcp_x_server = create_x_server (SEAT (seat));
-        x_server_local_set_xdmcp_server (X_SERVER_LOCAL (seat->priv->xdmcp_x_server), xdmcp_manager);
+        priv->xdmcp_x_server = create_x_server (SEAT (seat));
+        x_server_local_set_xdmcp_server (X_SERVER_LOCAL (priv->xdmcp_x_server), xdmcp_manager);
         gint port = seat_get_integer_property (SEAT (seat), "xdmcp-port");
         if (port > 0)
-            x_server_local_set_xdmcp_port (X_SERVER_LOCAL (seat->priv->xdmcp_x_server), port);
+            x_server_local_set_xdmcp_port (X_SERVER_LOCAL (priv->xdmcp_x_server), port);
         const gchar *key_name = seat_get_string_property (SEAT (seat), "xdmcp-key");
         if (key_name)
         {
@@ -102,15 +107,15 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
                 {
                     g_autofree gchar *key = g_key_file_get_string (keys, "keyring", key_name, NULL);
                     if (key)
-                        x_server_local_set_xdmcp_key (X_SERVER_LOCAL (seat->priv->xdmcp_x_server), key);
+                        x_server_local_set_xdmcp_key (X_SERVER_LOCAL (priv->xdmcp_x_server), key);
                 }
                 else
                     l_debug (seat, "Key %s not defined", key_name);
             }
         }
 
-        g_signal_connect (seat->priv->xdmcp_x_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
-        if (!display_server_start (DISPLAY_SERVER (seat->priv->xdmcp_x_server)))
+        g_signal_connect (priv->xdmcp_x_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (xdmcp_x_server_stopped_cb), seat);
+        if (!display_server_start (DISPLAY_SERVER (priv->xdmcp_x_server)))
             seat_stop (SEAT (seat));
     }
 
@@ -120,9 +125,11 @@ compositor_ready_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
 static void
 compositor_stopped_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (seat);
+
     l_debug (seat, "Compositor stopped");
 
-    g_clear_object (&seat->priv->compositor);
+    g_clear_object (&priv->compositor);
 
     if (seat_get_is_stopping (SEAT (seat)))
         check_stopped (seat);
@@ -133,6 +140,8 @@ compositor_stopped_cb (UnitySystemCompositor *compositor, SeatUnity *seat)
 static gboolean
 seat_unity_start (Seat *seat)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
     /* Replace Plymouth if it is running */
     gint vt = -1;
     if (plymouth_get_is_active () && plymouth_has_active_vt ())
@@ -160,30 +169,32 @@ seat_unity_start (Seat *seat)
     if (timeout <= 0)
         timeout = 60;
 
-    SEAT_UNITY (seat)->priv->compositor = unity_system_compositor_new ();
-    g_signal_connect (SEAT_UNITY (seat)->priv->compositor, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (compositor_ready_cb), seat);
-    g_signal_connect (SEAT_UNITY (seat)->priv->compositor, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (compositor_stopped_cb), seat);
-    unity_system_compositor_set_command (SEAT_UNITY (seat)->priv->compositor, seat_get_string_property (SEAT (seat), "unity-compositor-command"));
-    unity_system_compositor_set_vt (SEAT_UNITY (seat)->priv->compositor, vt);
-    unity_system_compositor_set_timeout (SEAT_UNITY (seat)->priv->compositor, timeout);
+    priv->compositor = unity_system_compositor_new ();
+    g_signal_connect (priv->compositor, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (compositor_ready_cb), seat);
+    g_signal_connect (priv->compositor, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (compositor_stopped_cb), seat);
+    unity_system_compositor_set_command (priv->compositor, seat_get_string_property (SEAT (seat), "unity-compositor-command"));
+    unity_system_compositor_set_vt (priv->compositor, vt);
+    unity_system_compositor_set_timeout (priv->compositor, timeout);
 
-    return display_server_start (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
+    return display_server_start (DISPLAY_SERVER (priv->compositor));
 }
 
 static XServerXmir *
 create_x_server (Seat *seat)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
     l_debug (seat, "Starting X server on Unity compositor");
 
-    g_autoptr(XServerXmir) x_server = x_server_xmir_new (SEAT_UNITY (seat)->priv->compositor);
+    g_autoptr(XServerXmir) x_server = x_server_xmir_new (priv->compositor);
 
     const gchar *command = seat_get_string_property (seat, "xmir-command");
     x_server_local_set_command (X_SERVER_LOCAL (x_server), command);
 
-    g_autofree gchar *id = g_strdup_printf ("x-%d", SEAT_UNITY (seat)->priv->next_x_server_id);
-    SEAT_UNITY (seat)->priv->next_x_server_id++;
+    g_autofree gchar *id = g_strdup_printf ("x-%d", priv->next_x_server_id);
+    priv->next_x_server_id++;
     x_server_xmir_set_mir_id (x_server, id);
-    x_server_xmir_set_mir_socket (x_server, unity_system_compositor_get_socket (SEAT_UNITY (seat)->priv->compositor));
+    x_server_xmir_set_mir_socket (x_server, unity_system_compositor_get_socket (priv->compositor));
 
     g_autofree gchar *number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
     g_autoptr(XAuthority) cookie = x_authority_new_local_cookie (number);
@@ -208,11 +219,13 @@ create_x_server (Seat *seat)
 static DisplayServer *
 seat_unity_create_display_server (Seat *seat, Session *session)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
     const gchar *session_type = session_get_session_type (session);
     if (strcmp (session_type, "x") == 0)
         return DISPLAY_SERVER (create_x_server (seat));
     else if (strcmp (session_type, "mir") == 0)
-        return g_object_ref (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
+        return g_object_ref (DISPLAY_SERVER (priv->compositor));
     else
     {
         l_warning (seat, "Can't create unsupported display server '%s'", session_type);
@@ -223,7 +236,9 @@ seat_unity_create_display_server (Seat *seat, Session *session)
 static gboolean
 seat_unity_display_server_is_used (Seat *seat, DisplayServer *display_server)
 {
-    if (display_server == DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor))
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
+    if (display_server == DISPLAY_SERVER (priv->compositor))
         return TRUE;
 
     return SEAT_CLASS (seat_unity_parent_class)->display_server_is_used (seat, display_server);
@@ -232,10 +247,12 @@ seat_unity_display_server_is_used (Seat *seat, DisplayServer *display_server)
 static GreeterSession *
 seat_unity_create_greeter_session (Seat *seat)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
     GreeterSession *greeter_session = SEAT_CLASS (seat_unity_parent_class)->create_greeter_session (seat);
     session_set_env (SESSION (greeter_session), "XDG_SEAT", seat_get_name (seat));
 
-    gint vt = display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
+    gint vt = display_server_get_vt (DISPLAY_SERVER (priv->compositor));
     if (vt >= 0)
     {
         g_autofree gchar *value = g_strdup_printf ("%d", vt);
@@ -248,10 +265,12 @@ seat_unity_create_greeter_session (Seat *seat)
 static Session *
 seat_unity_create_session (Seat *seat)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
     Session *session = SEAT_CLASS (seat_unity_parent_class)->create_session (seat);
     session_set_env (session, "XDG_SEAT", seat_get_name (seat));
 
-    gint vt = display_server_get_vt (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
+    gint vt = display_server_get_vt (DISPLAY_SERVER (priv->compositor));
     if (vt >= 0)
     {
         g_autofree gchar *value = g_strdup_printf ("%d", vt);
@@ -277,31 +296,34 @@ get_mir_id (Session *session)
 }
 
 static void
-seat_unity_set_active_session (Seat *s, Session *session)
+seat_unity_set_active_session (Seat *seat, Session *session)
 {
-    SeatUnity *seat = SEAT_UNITY (s);
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
 
-    const gchar *old_id = get_mir_id (seat->priv->active_session);
+    const gchar *old_id = get_mir_id (priv->active_session);
     const gchar *new_id = get_mir_id (session);
 
-    g_clear_object (&seat->priv->active_session);
-    seat->priv->active_session = g_object_ref (session);
+    g_clear_object (&priv->active_session);
+    priv->active_session = g_object_ref (session);
 
     if (g_strcmp0 (old_id, new_id) != 0)
-        unity_system_compositor_set_active_session (seat->priv->compositor, new_id);
+        unity_system_compositor_set_active_session (priv->compositor, new_id);
 
-    SEAT_CLASS (seat_unity_parent_class)->set_active_session (s, session);
+    SEAT_CLASS (seat_unity_parent_class)->set_active_session (seat, session);
 }
 
 static Session *
 seat_unity_get_active_session (Seat *seat)
 {
-    return SEAT_UNITY (seat)->priv->active_session;
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+    return priv->active_session;
 }
 
 static void
 seat_unity_set_next_session (Seat *seat, Session *session)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
     if (!session)
         return;
 
@@ -316,7 +338,7 @@ seat_unity_set_next_session (Seat *seat, Session *session)
     if (id)
     {
         l_debug (seat, "Marking Mir session %s as the next session", id);
-        unity_system_compositor_set_next_session (SEAT_UNITY (seat)->priv->compositor, id);
+        unity_system_compositor_set_next_session (priv->compositor, id);
     }
     else
     {
@@ -343,13 +365,15 @@ seat_unity_run_script (Seat *seat, DisplayServer *display_server, Process *scrip
 static void
 seat_unity_stop (Seat *seat)
 {
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (SEAT_UNITY (seat));
+
     /* Stop the compositor first */
-    if (SEAT_UNITY (seat)->priv->compositor)
-        display_server_stop (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->compositor));
+    if (priv->compositor)
+        display_server_stop (DISPLAY_SERVER (priv->compositor));
 
     /* Stop the XDMCP X server first */
-    if (SEAT_UNITY (seat)->priv->xdmcp_x_server)
-        display_server_stop (DISPLAY_SERVER (SEAT_UNITY (seat)->priv->xdmcp_x_server));
+    if (priv->xdmcp_x_server)
+        display_server_stop (DISPLAY_SERVER (priv->xdmcp_x_server));
 
     check_stopped (SEAT_UNITY (seat));
 }
@@ -357,22 +381,22 @@ seat_unity_stop (Seat *seat)
 static void
 seat_unity_init (SeatUnity *seat)
 {
-    seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_UNITY_TYPE, SeatUnityPrivate);
 }
 
 static void
 seat_unity_finalize (GObject *object)
 {
     SeatUnity *seat = SEAT_UNITY (object);
+    SeatUnityPrivate *priv = seat_unity_get_instance_private (seat);
 
-    g_clear_object (&seat->priv->compositor);
-    if (seat->priv->xdmcp_x_server)
+    g_clear_object (&priv->compositor);
+    if (priv->xdmcp_x_server)
     {
-        g_signal_handlers_disconnect_matched (seat->priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-        g_object_unref (seat->priv->xdmcp_x_server);
+        g_signal_handlers_disconnect_matched (priv->xdmcp_x_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
+        g_object_unref (priv->xdmcp_x_server);
     }
-    g_clear_object (&seat->priv->active_session);
-    g_clear_object (&seat->priv->active_display_server);
+    g_clear_object (&priv->active_session);
+    g_clear_object (&priv->active_display_server);
 
     G_OBJECT_CLASS (seat_unity_parent_class)->finalize (object);
 }

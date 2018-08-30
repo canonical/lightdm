@@ -23,12 +23,9 @@ G_BEGIN_DECLS
 #define X_SERVER_LOCAL_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), X_SERVER_LOCAL_TYPE, XServerLocalClass))
 #define IS_X_SERVER_LOCAL(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), X_SERVER_LOCAL_TYPE))
 
-typedef struct XServerLocalPrivate XServerLocalPrivate;
-
 typedef struct
 {
-    XServer              parent_instance;
-    XServerLocalPrivate *priv;
+    XServer parent_instance;
 } XServerLocal;
 
 typedef struct

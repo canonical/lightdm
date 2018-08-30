@@ -22,12 +22,9 @@ G_BEGIN_DECLS
 #define XDMCP_SESSION_TYPE (xdmcp_session_get_type())
 #define XDMCP_SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XDMCP_SESSION_TYPE, XDMCPSession));
 
-typedef struct XDMCPSessionPrivate XDMCPSessionPrivate;
-
 typedef struct
 {
-    GObject         parent_instance;
-    XDMCPSessionPrivate *priv;
+    GObject parent_instance;
 } XDMCPSession;
 
 typedef struct
@@ -37,17 +34,17 @@ typedef struct
 
 GType xdmcp_session_get_type (void);
 
-XDMCPSession *xdmcp_session_new (guint16 id);
+XDMCPSession *xdmcp_session_new (guint16 id, GInetAddress *address, guint16 display_number, XAuthority *authority);
 
 guint16 xdmcp_session_get_id (XDMCPSession *session);
 
-const gchar *xdmcp_session_get_manufacturer_display_id (XDMCPSession *session);
-
 GInetAddress *xdmcp_session_get_address (XDMCPSession *session);
+
+guint16 xdmcp_session_get_display_number (XDMCPSession *session);
 
 XAuthority *xdmcp_session_get_authority (XDMCPSession *session);
 
-guint16 xdmcp_session_get_display_number (XDMCPSession *session);
+void xdmcp_session_set_display_class (XDMCPSession *session, const gchar *display_class);
 
 const gchar *xdmcp_session_get_display_class (XDMCPSession *session);
 

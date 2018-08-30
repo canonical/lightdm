@@ -20,12 +20,9 @@ G_BEGIN_DECLS
 #define SEAT_XVNC_TYPE (seat_xvnc_get_type())
 #define SEAT_XVNC(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_XVNC_TYPE, SeatXVNC))
 
-typedef struct SeatXVNCPrivate SeatXVNCPrivate;
-
 typedef struct
 {
-    Seat               parent_instance;
-    SeatXVNCPrivate *priv;
+    Seat parent_instance;
 } SeatXVNC;
 
 typedef struct

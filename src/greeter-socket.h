@@ -25,12 +25,9 @@ G_BEGIN_DECLS
 
 #define GREETER_SOCKET_SIGNAL_CREATE_GREETER "create-greeter"
 
-typedef struct GreeterSocketPrivate GreeterSocketPrivate;
-
 typedef struct
 {
-    GObject               parent_instance;
-    GreeterSocketPrivate *priv;
+    GObject parent_instance;
 } GreeterSocket;
 
 typedef struct

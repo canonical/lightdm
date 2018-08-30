@@ -20,12 +20,9 @@ G_BEGIN_DECLS
 #define SEAT_XDMCP_SESSION_TYPE (seat_xdmcp_session_get_type())
 #define SEAT_XDMCP_SESSION(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_XDMCP_SESSION_TYPE, SeatXDMCPSession))
 
-typedef struct SeatXDMCPSessionPrivate SeatXDMCPSessionPrivate;
-
 typedef struct
 {
-    Seat                     parent_instance;
-    SeatXDMCPSessionPrivate *priv;
+    Seat parent_instance;
 } SeatXDMCPSession;
 
 typedef struct

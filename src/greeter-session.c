@@ -17,11 +17,11 @@
 
 #include "greeter-session.h"
 
-struct GreeterSessionPrivate
+typedef struct
 {
     /* Greeter running inside this session */
     Greeter *greeter;
-};
+} GreeterSessionPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (GreeterSession, greeter_session, SESSION_TYPE)
 
@@ -34,14 +34,15 @@ greeter_session_new (void)
 Greeter *
 greeter_session_get_greeter (GreeterSession *session)
 {
+    GreeterSessionPrivate *priv = greeter_session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
-    return session->priv->greeter;
+    return priv->greeter;
 }
 
 static gboolean
 greeter_session_start (Session *session)
 {
-    GreeterSession *s = GREETER_SESSION (session);
+    GreeterSessionPrivate *priv = greeter_session_get_instance_private (GREETER_SESSION (session));
 
     /* Create a pipe to talk with the greeter */
     int to_greeter_pipe[2], from_greeter_pipe[2];
@@ -55,7 +56,7 @@ greeter_session_start (Session *session)
     int to_greeter_output = to_greeter_pipe[0];
     int from_greeter_input = from_greeter_pipe[1];
     int from_greeter_output = from_greeter_pipe[0];
-    greeter_set_file_descriptors (s->priv->greeter, to_greeter_input, from_greeter_output);
+    greeter_set_file_descriptors (priv->greeter, to_greeter_input, from_greeter_output);
 
     /* Don't allow the daemon end of the pipes to be accessed in child processes */
     fcntl (to_greeter_input, F_SETFD, FD_CLOEXEC);
@@ -79,9 +80,9 @@ greeter_session_start (Session *session)
 static void
 greeter_session_stop (Session *session)
 {
-    GreeterSession *s = GREETER_SESSION (session);
+    GreeterSessionPrivate *priv = greeter_session_get_instance_private (GREETER_SESSION (session));
 
-    greeter_stop (s->priv->greeter);
+    greeter_stop (priv->greeter);
 
     SESSION_CLASS (greeter_session_parent_class)->stop (session);
 }
@@ -89,16 +90,17 @@ greeter_session_stop (Session *session)
 static void
 greeter_session_init (GreeterSession *session)
 {
-    session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, GREETER_SESSION_TYPE, GreeterSessionPrivate);
-    session->priv->greeter = greeter_new ();
+    GreeterSessionPrivate *priv = greeter_session_get_instance_private (session);
+    priv->greeter = greeter_new ();
 }
 
 static void
 greeter_session_finalize (GObject *object)
 {
     GreeterSession *self = GREETER_SESSION (object);
+    GreeterSessionPrivate *priv = greeter_session_get_instance_private (self);
 
-    g_clear_object (&self->priv->greeter);
+    g_clear_object (&priv->greeter);
 
     G_OBJECT_CLASS (greeter_session_parent_class)->finalize (object);
 }

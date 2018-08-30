@@ -26,7 +26,7 @@ enum {
 };
 static guint service_signals[LAST_SERVICE_SIGNAL] = { 0 };
 
-struct Login1ServicePrivate
+typedef struct
 {
     /* Connection to bus service is running on */
     GDBusConnection *connection;
@@ -39,7 +39,7 @@ struct Login1ServicePrivate
 
     /* Handle to signal subscription */
     guint signal_id;
-};
+} Login1ServicePrivate;
 
 enum {
     CAN_GRAPHICAL_CHANGED,
@@ -48,7 +48,7 @@ enum {
 };
 static guint seat_signals[LAST_SEAT_SIGNAL] = { 0 };
 
-struct Login1SeatPrivate
+typedef struct
 {
     /* Connection to bus seat is running on */
     GDBusConnection *connection;
@@ -67,7 +67,7 @@ struct Login1SeatPrivate
 
     /* TRUE if can do session switching */
     gboolean can_multi_session;
-};
+} Login1SeatPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (Login1Service, login1_service, G_TYPE_OBJECT)
 G_DEFINE_TYPE_WITH_PRIVATE (Login1Seat, login1_seat, G_TYPE_OBJECT)
@@ -87,9 +87,11 @@ login1_service_get_instance (void)
 static void
 update_property (Login1Seat *seat, const gchar *name, GVariant *value)
 {
+    Login1SeatPrivate *priv = login1_seat_get_instance_private (seat);
+
     if (strcmp (name, "CanGraphical") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
     {
-        seat->priv->can_graphical = g_variant_get_boolean (value);
+        priv->can_graphical = g_variant_get_boolean (value);
         g_signal_emit (seat, seat_signals[CAN_GRAPHICAL_CHANGED], 0);
     }
     else if (strcmp (name, "ActiveSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE ("(so)")))
@@ -110,6 +112,7 @@ seat_properties_changed_cb (GDBusConnection *connection,
                             gpointer user_data)
 {
     Login1Seat *seat = user_data;
+    Login1SeatPrivate *priv = login1_seat_get_instance_private (seat);
 
     GVariantIter *iter;
     GVariantIter *invalidated_properties;
@@ -126,7 +129,7 @@ seat_properties_changed_cb (GDBusConnection *connection,
         g_autoptr(GError) error = NULL;
         g_autoptr(GVariant) result = g_dbus_connection_call_sync (connection,
                                                                   LOGIN1_SERVICE_NAME,
-                                                                  seat->priv->path,
+                                                                  priv->path,
                                                                   "org.freedesktop.DBus.Properties",
                                                                   "Get",
                                                                   g_variant_new ("(ss)", "org.freedesktop.login1.Seat", name),
@@ -150,25 +153,29 @@ seat_properties_changed_cb (GDBusConnection *connection,
 static Login1Seat *
 add_seat (Login1Service *service, const gchar *id, const gchar *path)
 {
-    Login1Seat *seat = g_object_new (LOGIN1_SEAT_TYPE, NULL);
-    seat->priv->connection = g_object_ref (service->priv->connection);
-    seat->priv->id = g_strdup (id);
-    seat->priv->path = g_strdup (path);
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
 
-    seat->priv->signal_id = g_dbus_connection_signal_subscribe (seat->priv->connection,
-                                                                LOGIN1_SERVICE_NAME,
-                                                                "org.freedesktop.DBus.Properties",
-                                                                "PropertiesChanged",
-                                                                path,
-                                                                "org.freedesktop.login1.Seat",
-                                                                G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                seat_properties_changed_cb,
-                                                                g_object_ref (seat),
-                                                                g_object_unref);
+    Login1Seat *seat = g_object_new (LOGIN1_SEAT_TYPE, NULL);
+    Login1SeatPrivate *s_priv = login1_seat_get_instance_private (seat);
+
+    s_priv->connection = g_object_ref (priv->connection);
+    s_priv->id = g_strdup (id);
+    s_priv->path = g_strdup (path);
+
+    s_priv->signal_id = g_dbus_connection_signal_subscribe (s_priv->connection,
+                                                            LOGIN1_SERVICE_NAME,
+                                                            "org.freedesktop.DBus.Properties",
+                                                            "PropertiesChanged",
+                                                            path,
+                                                            "org.freedesktop.login1.Seat",
+                                                            G_DBUS_SIGNAL_FLAGS_NONE,
+                                                            seat_properties_changed_cb,
+                                                            g_object_ref (seat),
+                                                            g_object_unref);
 
     /* Get properties for this seat */
     g_autoptr(GError) error = NULL;
-    g_autoptr(GVariant) result = g_dbus_connection_call_sync (seat->priv->connection,
+    g_autoptr(GVariant) result = g_dbus_connection_call_sync (s_priv->connection,
                                                               LOGIN1_SERVICE_NAME,
                                                               path,
                                                               "org.freedesktop.DBus.Properties",
@@ -191,14 +198,14 @@ add_seat (Login1Service *service, const gchar *id, const gchar *path)
         while (g_variant_iter_loop (properties, "{&sv}", &name, &value))
         {
             if (strcmp (name, "CanGraphical") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
-                seat->priv->can_graphical = g_variant_get_boolean (value);
+                s_priv->can_graphical = g_variant_get_boolean (value);
             else if (strcmp (name, "CanMultiSession") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
-                seat->priv->can_multi_session = g_variant_get_boolean (value);
+                s_priv->can_multi_session = g_variant_get_boolean (value);
         }
         g_variant_iter_free (properties);
     }
 
-    service->priv->seats = g_list_append (service->priv->seats, seat);
+    priv->seats = g_list_append (priv->seats, seat);
 
     return seat;
 }
@@ -213,6 +220,7 @@ signal_cb (GDBusConnection *connection,
            gpointer user_data)
 {
     Login1Service *service = user_data;
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
 
     if (strcmp (signal_name, "SeatNew") == 0)
     {
@@ -234,7 +242,7 @@ signal_cb (GDBusConnection *connection,
         g_autoptr(Login1Seat) seat = login1_service_get_seat (service, id);
         if (seat)
         {
-            service->priv->seats = g_list_remove (service->priv->seats, seat);
+            priv->seats = g_list_remove (priv->seats, seat);
             g_signal_emit (service, service_signals[SEAT_REMOVED], 0, seat);
         }
     }
@@ -243,30 +251,32 @@ signal_cb (GDBusConnection *connection,
 gboolean
 login1_service_connect (Login1Service *service)
 {
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
+
     g_return_val_if_fail (service != NULL, FALSE);
 
-    if (service->priv->connected)
+    if (priv->connected)
         return TRUE;
 
     g_autoptr(GError) error = NULL;
-    service->priv->connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    priv->connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
     if (error)
         g_warning ("Failed to get system bus: %s", error->message);
-    if (!service->priv->connection)
+    if (!priv->connection)
         return FALSE;
 
-    service->priv->signal_id = g_dbus_connection_signal_subscribe (service->priv->connection,
-                                                                   LOGIN1_SERVICE_NAME,
-                                                                   LOGIN1_MANAGER_INTERFACE_NAME,
-                                                                   NULL,
-                                                                   LOGIN1_OBJECT_NAME,
-                                                                   NULL,
-                                                                   G_DBUS_SIGNAL_FLAGS_NONE,
-                                                                   signal_cb,
-                                                                   g_object_ref (service),
-                                                                   g_object_unref);
+    priv->signal_id = g_dbus_connection_signal_subscribe (priv->connection,
+                                                          LOGIN1_SERVICE_NAME,
+                                                          LOGIN1_MANAGER_INTERFACE_NAME,
+                                                          NULL,
+                                                          LOGIN1_OBJECT_NAME,
+                                                          NULL,
+                                                          G_DBUS_SIGNAL_FLAGS_NONE,
+                                                          signal_cb,
+                                                          g_object_ref (service),
+                                                          g_object_unref);
 
-    g_autoptr(GVariant) result = g_dbus_connection_call_sync (service->priv->connection,
+    g_autoptr(GVariant) result = g_dbus_connection_call_sync (priv->connection,
                                                               LOGIN1_SERVICE_NAME,
                                                               LOGIN1_OBJECT_NAME,
                                                               LOGIN1_MANAGER_INTERFACE_NAME,
@@ -290,7 +300,7 @@ login1_service_connect (Login1Service *service)
         add_seat (service, id, path);
     g_variant_iter_free (seat_iter);
 
-    service->priv->connected = TRUE;
+    priv->connected = TRUE;
 
     return TRUE;
 }
@@ -298,26 +308,32 @@ login1_service_connect (Login1Service *service)
 gboolean
 login1_service_get_is_connected (Login1Service *service)
 {
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
     g_return_val_if_fail (service != NULL, FALSE);
-    return service->priv->connected;
+    return priv->connected;
 }
 
 GList *
 login1_service_get_seats (Login1Service *service)
 {
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
     g_return_val_if_fail (service != NULL, NULL);
-    return service->priv->seats;
+    return priv->seats;
 }
 
 Login1Seat *
 login1_service_get_seat (Login1Service *service, const gchar *id)
 {
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
+
     g_return_val_if_fail (service != NULL, NULL);
 
-    for (GList *link = service->priv->seats; link; link = link->next)
+    for (GList *link = priv->seats; link; link = link->next)
     {
         Login1Seat *seat = link->data;
-        if (strcmp (seat->priv->id, id) == 0)
+        Login1SeatPrivate *s_priv = login1_seat_get_instance_private (seat);
+
+        if (strcmp (s_priv->id, id) == 0)
             return seat;
     }
 
@@ -327,6 +343,8 @@ login1_service_get_seat (Login1Service *service, const gchar *id)
 void
 login1_service_lock_session (Login1Service *service, const gchar *session_id)
 {
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
+
     g_return_if_fail (service != NULL);
     g_return_if_fail (session_id != NULL);
 
@@ -336,7 +354,7 @@ login1_service_lock_session (Login1Service *service, const gchar *session_id)
         return;
 
     g_autoptr(GError) error = NULL;
-    g_autoptr(GVariant) result = g_dbus_connection_call_sync (service->priv->connection,
+    g_autoptr(GVariant) result = g_dbus_connection_call_sync (priv->connection,
                                                               LOGIN1_SERVICE_NAME,
                                                               LOGIN1_OBJECT_NAME,
                                                               LOGIN1_MANAGER_INTERFACE_NAME,
@@ -354,6 +372,8 @@ login1_service_lock_session (Login1Service *service, const gchar *session_id)
 void
 login1_service_unlock_session (Login1Service *service, const gchar *session_id)
 {
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
+
     g_return_if_fail (service != NULL);
     g_return_if_fail (session_id != NULL);
 
@@ -363,7 +383,7 @@ login1_service_unlock_session (Login1Service *service, const gchar *session_id)
         return;
 
     g_autoptr(GError) error = NULL;
-    g_autoptr(GVariant) result = g_dbus_connection_call_sync (service->priv->connection,
+    g_autoptr(GVariant) result = g_dbus_connection_call_sync (priv->connection,
                                                               LOGIN1_SERVICE_NAME,
                                                               LOGIN1_OBJECT_NAME,
                                                               LOGIN1_MANAGER_INTERFACE_NAME,
@@ -381,6 +401,8 @@ login1_service_unlock_session (Login1Service *service, const gchar *session_id)
 void
 login1_service_activate_session (Login1Service *service, const gchar *session_id)
 {
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
+
     g_return_if_fail (service != NULL);
     g_return_if_fail (session_id != NULL);
 
@@ -390,7 +412,7 @@ login1_service_activate_session (Login1Service *service, const gchar *session_id
         return;
 
     g_autoptr(GError) error = NULL;
-    g_autoptr(GVariant) result = g_dbus_connection_call_sync (service->priv->connection,
+    g_autoptr(GVariant) result = g_dbus_connection_call_sync (priv->connection,
                                                               LOGIN1_SERVICE_NAME,
                                                               LOGIN1_OBJECT_NAME,
                                                               LOGIN1_MANAGER_INTERFACE_NAME,
@@ -408,6 +430,8 @@ login1_service_activate_session (Login1Service *service, const gchar *session_id
 void
 login1_service_terminate_session (Login1Service *service, const gchar *session_id)
 {
+    Login1ServicePrivate *priv = login1_service_get_instance_private (service);
+
     g_return_if_fail (service != NULL);
     g_return_if_fail (session_id != NULL);
 
@@ -417,7 +441,7 @@ login1_service_terminate_session (Login1Service *service, const gchar *session_i
         return;
 
     g_autoptr(GError) error = NULL;
-    g_autoptr(GVariant) result = g_dbus_connection_call_sync (service->priv->connection,
+    g_autoptr(GVariant) result = g_dbus_connection_call_sync (priv->connection,
                                                               LOGIN1_SERVICE_NAME,
                                                               LOGIN1_OBJECT_NAME,
                                                               LOGIN1_MANAGER_INTERFACE_NAME,
@@ -435,17 +459,17 @@ login1_service_terminate_session (Login1Service *service, const gchar *session_i
 static void
 login1_service_init (Login1Service *service)
 {
-    service->priv = G_TYPE_INSTANCE_GET_PRIVATE (service, LOGIN1_SERVICE_TYPE, Login1ServicePrivate);
 }
 
 static void
 login1_service_finalize (GObject *object)
 {
     Login1Service *self = LOGIN1_SERVICE (object);
+    Login1ServicePrivate *priv = login1_service_get_instance_private (self);
 
-    g_list_free_full (self->priv->seats, g_object_unref);
-    g_dbus_connection_signal_unsubscribe (self->priv->connection, self->priv->signal_id);
-    g_clear_object (&self->priv->connection);
+    g_list_free_full (priv->seats, g_object_unref);
+    g_dbus_connection_signal_unsubscribe (priv->connection, priv->signal_id);
+    g_clear_object (&priv->connection);
 
     G_OBJECT_CLASS (login1_service_parent_class)->finalize (object);
 }
@@ -478,39 +502,42 @@ login1_service_class_init (Login1ServiceClass *klass)
 const gchar *
 login1_seat_get_id (Login1Seat *seat)
 {
+    Login1SeatPrivate *priv = login1_seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, NULL);
-    return seat->priv->id;
+    return priv->id;
 }
 
 gboolean
 login1_seat_get_can_graphical (Login1Seat *seat)
 {
+    Login1SeatPrivate *priv = login1_seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, FALSE);
-    return seat->priv->can_graphical;
+    return priv->can_graphical;
 }
 
 gboolean
 login1_seat_get_can_multi_session (Login1Seat *seat)
 {
+    Login1SeatPrivate *priv = login1_seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, FALSE);
-    return seat->priv->can_multi_session;
+    return priv->can_multi_session;
 }
 
 static void
 login1_seat_init (Login1Seat *seat)
 {
-    seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, LOGIN1_SEAT_TYPE, Login1SeatPrivate);
 }
 
 static void
 login1_seat_finalize (GObject *object)
 {
     Login1Seat *self = LOGIN1_SEAT (object);
+    Login1SeatPrivate *priv = login1_seat_get_instance_private (self);
 
-    g_clear_pointer (&self->priv->id, g_free);
-    g_clear_pointer (&self->priv->path, g_free);
-    g_dbus_connection_signal_unsubscribe (self->priv->connection, self->priv->signal_id);
-    g_clear_object (&self->priv->connection);
+    g_clear_pointer (&priv->id, g_free);
+    g_clear_pointer (&priv->path, g_free);
+    g_dbus_connection_signal_unsubscribe (priv->connection, priv->signal_id);
+    g_clear_object (&priv->connection);
 
     G_OBJECT_CLASS (login1_seat_parent_class)->finalize (object);
 }

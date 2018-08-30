@@ -28,7 +28,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct SeatPrivate
+typedef struct
 {
     /* XDG name for this seat */
     gchar *name;
@@ -68,7 +68,7 @@ struct SeatPrivate
 
     /* The greeter to be started to replace the current one */
     GreeterSession *replacement_greeter;
-};
+} SeatPrivate;
 
 static void seat_logger_iface_init (LoggerInterface *iface);
 
@@ -129,30 +129,35 @@ seat_new (const gchar *module_name)
 void
 seat_set_name (Seat *seat, const gchar *name)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     g_return_if_fail (seat != NULL);
-    g_free (seat->priv->name);
-    seat->priv->name = g_strdup (name);
+    g_free (priv->name);
+    priv->name = g_strdup (name);
 }
 
 void
 seat_set_property (Seat *seat, const gchar *name, const gchar *value)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_if_fail (seat != NULL);
-    g_hash_table_insert (seat->priv->properties, g_strdup (name), g_strdup (value));
+    g_hash_table_insert (priv->properties, g_strdup (name), g_strdup (value));
 }
 
 const gchar *
 seat_get_string_property (Seat *seat, const gchar *name)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, NULL);
-    return g_hash_table_lookup (seat->priv->properties, name);
+    return g_hash_table_lookup (priv->properties, name);
 }
 
 gchar **
 seat_get_string_list_property (Seat *seat, const gchar *name)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, NULL);
-    return g_strsplit (g_hash_table_lookup (seat->priv->properties, name), ";", 0);
+    return g_strsplit (g_hash_table_lookup (priv->properties, name), ";", 0);
 }
 
 gboolean
@@ -181,41 +186,48 @@ seat_get_integer_property (Seat *seat, const gchar *name)
 const gchar *
 seat_get_name (Seat *seat)
 {
-    return seat->priv->name;
+    SeatPrivate *priv = seat_get_instance_private (seat);
+    g_return_val_if_fail (seat != NULL, NULL);
+    return priv->name;
 }
 
 void
 seat_set_supports_multi_session (Seat *seat, gboolean supports_multi_session)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_if_fail (seat != NULL);
-    seat->priv->supports_multi_session = supports_multi_session;
+    priv->supports_multi_session = supports_multi_session;
 }
 
 void
 seat_set_share_display_server (Seat *seat, gboolean share_display_server)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_if_fail (seat != NULL);
-    seat->priv->share_display_server = share_display_server;
+    priv->share_display_server = share_display_server;
 }
 
 gboolean
 seat_start (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     g_return_val_if_fail (seat != NULL, FALSE);
 
     l_debug (seat, "Starting");
 
     SEAT_GET_CLASS (seat)->setup (seat);
-    seat->priv->started = SEAT_GET_CLASS (seat)->start (seat);
+    priv->started = SEAT_GET_CLASS (seat)->start (seat);
 
-    return seat->priv->started;
+    return priv->started;
 }
 
 GList *
 seat_get_sessions (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, NULL);
-    return seat->priv->sessions;
+    return priv->sessions;
 }
 
 static gboolean
@@ -228,12 +240,14 @@ set_greeter_idle (gpointer greeter)
 void
 seat_set_active_session (Seat *seat, Session *session)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     g_return_if_fail (seat != NULL);
 
     SEAT_GET_CLASS (seat)->set_active_session (seat, session);
 
     /* Stop any greeters */
-    for (GList *link = seat->priv->sessions; link; link = link->next)
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *s = link->data;
 
@@ -245,7 +259,7 @@ seat_set_active_session (Seat *seat, Session *session)
             Greeter *greeter = greeter_session_get_greeter (GREETER_SESSION (s));
             if (greeter_get_resettable (greeter))
             {
-                if (seat->priv->active_session == s)
+                if (priv->active_session == s)
                 {
                     l_debug (seat, "Idling greeter");
                     /* Do this in an idle callback, because we might very well
@@ -264,12 +278,12 @@ seat_set_active_session (Seat *seat, Session *session)
     }
 
     /* Lock previous sessions */
-    if (seat->priv->active_session && session != seat->priv->active_session && !IS_GREETER_SESSION (seat->priv->active_session))
-        session_lock (seat->priv->active_session);
+    if (priv->active_session && session != priv->active_session && !IS_GREETER_SESSION (priv->active_session))
+        session_lock (priv->active_session);
 
     session_activate (session);
-    g_clear_object (&seat->priv->active_session);
-    seat->priv->active_session = g_object_ref (session);
+    g_clear_object (&priv->active_session);
+    priv->active_session = g_object_ref (session);
 }
 
 Session *
@@ -282,8 +296,9 @@ seat_get_active_session (Seat *seat)
 Session *
 seat_get_next_session (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, NULL);
-    return seat->priv->next_session;
+    return priv->next_session;
 }
 
 /**
@@ -298,8 +313,9 @@ seat_get_next_session (Seat *seat)
 Session *
 seat_get_expected_active_session (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, NULL);
-    return seat->priv->active_session;
+    return priv->active_session;
 }
 
 /**
@@ -313,15 +329,18 @@ seat_get_expected_active_session (Seat *seat)
 void
 seat_set_externally_activated_session (Seat *seat, Session *session)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_if_fail (seat != NULL);
-    g_clear_object (&seat->priv->active_session);
-    seat->priv->active_session = g_object_ref (session);
+    g_clear_object (&priv->active_session);
+    priv->active_session = g_object_ref (session);
 }
 
 Session *
 seat_find_session_by_login1_id (Seat *seat, const gchar *login1_session_id)
 {
-    for (GList *session_link = seat->priv->sessions; session_link; session_link = session_link->next)
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
+    for (GList *session_link = priv->sessions; session_link; session_link = session_link->next)
     {
         Session *session = session_link->data;
         if (g_strcmp0 (login1_session_id, session_get_login1_session_id (session)) == 0)
@@ -334,8 +353,9 @@ seat_find_session_by_login1_id (Seat *seat, const gchar *login1_session_id)
 gboolean
 seat_get_can_switch (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, FALSE);
-    return seat_get_boolean_property (seat, "allow-user-switching") && seat->priv->supports_multi_session;
+    return seat_get_boolean_property (seat, "allow-user-switching") && priv->supports_multi_session;
 }
 
 gboolean
@@ -415,12 +435,14 @@ emit_upstart_signal (const gchar *signal)
 static void
 check_stopped (Seat *seat)
 {
-    if (seat->priv->stopping &&
-        !seat->priv->stopped &&
-        g_list_length (seat->priv->display_servers) == 0 &&
-        g_list_length (seat->priv->sessions) == 0)
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
+    if (priv->stopping &&
+        !priv->stopped &&
+        g_list_length (priv->display_servers) == 0 &&
+        g_list_length (priv->sessions) == 0)
     {
-        seat->priv->stopped = TRUE;
+        priv->stopped = TRUE;
         l_debug (seat, "Stopped");
         g_signal_emit (seat, signals[STOPPED], 0);
     }
@@ -429,6 +451,8 @@ check_stopped (Seat *seat)
 static void
 display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     l_debug (seat, "Display server stopped");
 
     /* Run a script right after stopping the display server */
@@ -437,9 +461,9 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
         run_script (seat, NULL, script, NULL);
 
     g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    seat->priv->display_servers = g_list_remove (seat->priv->display_servers, display_server);
+    priv->display_servers = g_list_remove (priv->display_servers, display_server);
 
-    if (seat->priv->stopping || !seat->priv->started)
+    if (priv->stopping || !priv->started)
     {
         check_stopped (seat);
         g_object_unref (display_server);
@@ -447,7 +471,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     }
 
     /* Stop all sessions on this display server */
-    GList *list = g_list_copy (seat->priv->sessions);
+    GList *list = g_list_copy (priv->sessions);
     for (GList *link = list; link; link = link->next)
         g_object_ref (link->data);
     for (GList *link = list; link; link = link->next)
@@ -464,7 +488,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 
         /* Stop seat if this is the only display server and it failed to start a greeter */
         if (is_failed_greeter &&
-            g_list_length (seat->priv->display_servers) == 0)
+            g_list_length (priv->display_servers) == 0)
         {
             l_debug (seat, "Stopping; greeter display server failed to start");
             seat_stop (seat);
@@ -472,7 +496,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     }
     g_list_free_full (list, g_object_unref);
 
-    if (!seat->priv->stopping)
+    if (!priv->stopping)
     {
         /* If we were the active session, switch to a greeter */
         Session *active_session = seat_get_active_session (seat);
@@ -493,13 +517,16 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
 static gboolean
 can_share_display_server (Seat *seat, DisplayServer *display_server)
 {
-    return seat->priv->share_display_server && display_server_get_can_share (display_server);
+    SeatPrivate *priv = seat_get_instance_private (seat);
+    return priv->share_display_server && display_server_get_can_share (display_server);
 }
 
 static GreeterSession *
 find_greeter_session (Seat *seat)
 {
-    for (GList *link = seat->priv->sessions; link; link = link->next)
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
         if (!session_get_is_stopping (session) && IS_GREETER_SESSION (session))
@@ -512,7 +539,9 @@ find_greeter_session (Seat *seat)
 static GreeterSession *
 find_resettable_greeter (Seat *seat)
 {
-    for (GList *link = seat->priv->sessions; link; link = link->next)
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
         if (!session_get_is_stopping (session) && IS_GREETER_SESSION (session) &&
@@ -537,6 +566,8 @@ set_greeter_hints (Seat *seat, Greeter *greeter)
 static void
 switch_to_greeter_from_failed_session (Seat *seat, Session *session)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     /* Switch to greeter if one open */
     GreeterSession *greeter_session = find_resettable_greeter (seat);
     gboolean existing = FALSE;
@@ -564,8 +595,8 @@ switch_to_greeter_from_failed_session (Seat *seat, Session *session)
     }
     else
     {
-        g_clear_object (&seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
+        g_clear_object (&priv->session_to_activate);
+        priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
         if (can_share_display_server (seat, session_get_display_server (session)))
             session_set_display_server (SESSION (greeter_session), session_get_display_server (session));
@@ -594,7 +625,7 @@ start_session (Seat *seat, Session *session)
     if (IS_GREETER_SESSION (session))
     {
         g_autofree gchar *log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-        g_autofree gchar *filename = g_strdup_printf ("%s-greeter.log", seat->priv->name);
+        g_autofree gchar *filename = g_strdup_printf ("%s-greeter.log", seat_get_name (seat));
         g_autofree gchar *log_filename = g_build_filename (log_dir, filename, NULL);
         gboolean backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
         session_set_log_file (session, log_filename, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
@@ -617,6 +648,8 @@ start_session (Seat *seat, Session *session)
 static void
 run_session (Seat *seat, Session *session)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     const gchar *script;
     if (IS_GREETER_SESSION (session))
         script = seat_get_string_property (seat, "greeter-setup-script");
@@ -639,12 +672,12 @@ run_session (Seat *seat, Session *session)
 
     // FIXME: Wait until the session is ready
 
-    if (session == seat->priv->session_to_activate)
+    if (session == priv->session_to_activate)
     {
         seat_set_active_session (seat, session);
-        g_clear_object (&seat->priv->session_to_activate);
+        g_clear_object (&priv->session_to_activate);
     }
-    else if (seat->priv->active_session)
+    else if (priv->active_session)
     {
         /* Multiple sessions can theoretically be on the same VT (especially
            if using Mir).  If a new session appears on an existing active VT,
@@ -653,17 +686,19 @@ run_session (Seat *seat, Session *session)
            session that we want to be active.  So let's be explicit and
            re-activate the correct session whenever a new session starts.
            There's no harm to do this in seats that enforce separate VTs. */
-        session_activate (seat->priv->active_session);
+        session_activate (priv->active_session);
     }
 }
 
 static Session *
 find_user_session (Seat *seat, const gchar *username, Session *ignore_session)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     if (!username)
         return NULL;
 
-    for (GList *link = seat->priv->sessions; link; link = link->next)
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
 
@@ -680,10 +715,11 @@ find_user_session (Seat *seat, const gchar *username, Session *ignore_session)
 static void
 greeter_active_username_changed_cb (Greeter *greeter, GParamSpec *pspec, Seat *seat)
 {
-    Session *session = find_user_session (seat, greeter_get_active_username (greeter), seat->priv->active_session);
+    SeatPrivate *priv = seat_get_instance_private (seat);
+    Session *session = find_user_session (seat, greeter_get_active_username (greeter), priv->active_session);
 
-    g_clear_object (&seat->priv->next_session);
-    seat->priv->next_session = session ? g_object_ref (session) : NULL;
+    g_clear_object (&priv->next_session);
+    priv->next_session = session ? g_object_ref (session) : NULL;
 
     SEAT_GET_CLASS (seat)->set_next_session (seat, session);
 }
@@ -721,16 +757,18 @@ session_authentication_complete_cb (Session *session, Seat *seat)
 static void
 session_stopped_cb (Session *session, Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     l_debug (seat, "Session stopped");
 
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
-    seat->priv->sessions = g_list_remove (seat->priv->sessions, session);
-    if (session == seat->priv->active_session)
-        g_clear_object (&seat->priv->active_session);
-    if (session == seat->priv->next_session)
-        g_clear_object (&seat->priv->next_session);
-    if (session == seat->priv->session_to_activate)
-        g_clear_object (&seat->priv->session_to_activate);
+    priv->sessions = g_list_remove (priv->sessions, session);
+    if (session == priv->active_session)
+        g_clear_object (&priv->active_session);
+    if (session == priv->next_session)
+        g_clear_object (&priv->next_session);
+    if (session == priv->session_to_activate)
+        g_clear_object (&priv->session_to_activate);
 
     DisplayServer *display_server = session_get_display_server (session);
 
@@ -744,10 +782,10 @@ session_stopped_cb (Session *session, Seat *seat)
 
     /* We were waiting for this session, but it didn't start :( */
     // FIXME: Start a greeter on this?
-    if (session == seat->priv->session_to_activate)
-        g_clear_object (&seat->priv->session_to_activate);
+    if (session == priv->session_to_activate)
+        g_clear_object (&priv->session_to_activate);
 
-    if (seat->priv->stopping)
+    if (priv->stopping)
     {
         check_stopped (seat);
         g_object_unref (session);
@@ -755,10 +793,10 @@ session_stopped_cb (Session *session, Seat *seat)
     }
 
     /* If there is a pending replacement greeter, start it */
-    if (IS_GREETER_SESSION (session) && seat->priv->replacement_greeter)
+    if (IS_GREETER_SESSION (session) && priv->replacement_greeter)
     {
-        GreeterSession *replacement_greeter = seat->priv->replacement_greeter;
-        seat->priv->replacement_greeter = NULL;
+        GreeterSession *replacement_greeter = priv->replacement_greeter;
+        priv->replacement_greeter = NULL;
 
         if (session_get_is_authenticated (SESSION (replacement_greeter)))
         {
@@ -778,7 +816,7 @@ session_stopped_cb (Session *session, Seat *seat)
         can_share_display_server (seat, display_server) &&
         greeter_get_start_session (greeter_session_get_greeter (GREETER_SESSION (session))))
     {
-        for (GList *link = seat->priv->sessions; link; link = link->next)
+        for (GList *link = priv->sessions; link; link = link->next)
         {
             Session *s = link->data;
 
@@ -802,8 +840,8 @@ session_stopped_cb (Session *session, Seat *seat)
     /* If this is the greeter and nothing else is running then stop the seat */
     else if (IS_GREETER_SESSION (session) &&
         !greeter_get_start_session (greeter_session_get_greeter (GREETER_SESSION (session))) &&
-        g_list_length (seat->priv->display_servers) == 1 &&
-        g_list_nth_data (seat->priv->display_servers, 0) == display_server)
+        g_list_length (priv->display_servers) == 1 &&
+        g_list_nth_data (priv->display_servers, 0) == display_server)
     {
         l_debug (seat, "Stopping; failed to start a greeter");
         seat_stop (seat);
@@ -860,8 +898,10 @@ set_session_env (Session *session)
 static Session *
 create_session (Seat *seat, gboolean autostart)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     Session *session = SEAT_GET_CLASS (seat)->create_session (seat);
-    seat->priv->sessions = g_list_append (seat->priv->sessions, session);
+    priv->sessions = g_list_append (priv->sessions, session);
     if (autostart)
         g_signal_connect (session, SESSION_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (session_authentication_complete_cb), seat);
     g_signal_connect (session, SESSION_SIGNAL_STOPPED, G_CALLBACK (session_stopped_cb), seat);
@@ -1046,8 +1086,10 @@ create_guest_session (Seat *seat, const gchar *session_name)
 static Session *
 get_greeter_session (Seat *seat, Greeter *greeter)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     /* Stop any greeters */
-    for (GList *link = seat->priv->sessions; link; link = link->next)
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
 
@@ -1074,6 +1116,8 @@ greeter_create_session_cb (Greeter *greeter, Seat *seat)
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     /* Get the session to use */
     Session *session;
     if (greeter_get_guest_authenticated (greeter))
@@ -1134,8 +1178,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     }
 
     /* Switch to this session when it is ready */
-    g_clear_object (&seat->priv->session_to_activate);
-    seat->priv->session_to_activate = session;
+    g_clear_object (&priv->session_to_activate);
+    priv->session_to_activate = session;
 
     /* Return to existing session if it is open */
     const gchar *username = session_get_username (session);
@@ -1186,6 +1230,8 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
 static GreeterSession *
 create_greeter_session (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     l_debug (seat, "Creating greeter session");
 
     g_autofree gchar *sessions_dir = config_get_string (config_get_instance (), "LightDM", "greeters-directory");
@@ -1204,7 +1250,7 @@ create_greeter_session (Seat *seat)
     GreeterSession *greeter_session = SEAT_GET_CLASS (seat)->create_greeter_session (seat);
     Greeter *greeter = greeter_session_get_greeter (greeter_session);
     session_set_config (SESSION (greeter_session), session_config);
-    seat->priv->sessions = g_list_append (seat->priv->sessions, SESSION (greeter_session));
+    priv->sessions = g_list_append (priv->sessions, SESSION (greeter_session));
     g_signal_connect (greeter, GREETER_SIGNAL_ACTIVE_USERNAME_CHANGED, G_CALLBACK (greeter_active_username_changed_cb), seat);
     g_signal_connect (greeter_session, SESSION_SIGNAL_AUTHENTICATION_COMPLETE, G_CALLBACK (session_authentication_complete_cb), seat);
     g_signal_connect (greeter_session, SESSION_SIGNAL_STOPPED, G_CALLBACK (session_stopped_cb), seat);
@@ -1262,7 +1308,9 @@ create_greeter_session (Seat *seat)
 static Session *
 find_session_for_display_server (Seat *seat, DisplayServer *display_server)
 {
-    for (GList *link = seat->priv->sessions; link; link = link->next)
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
 
@@ -1314,6 +1362,8 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
 static DisplayServer *
 create_display_server (Seat *seat, Session *session)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     l_debug (seat, "Creating display server of type %s", session_get_session_type (session));
 
     DisplayServer *display_server = SEAT_GET_CLASS (seat)->create_display_server (seat, session);
@@ -1321,9 +1371,9 @@ create_display_server (Seat *seat, Session *session)
         return NULL;
 
     /* Remember this display server */
-    if (!g_list_find (seat->priv->display_servers, display_server))
+    if (!g_list_find (priv->display_servers, display_server))
     {
-        seat->priv->display_servers = g_list_append (seat->priv->display_servers, display_server);
+        priv->display_servers = g_list_append (priv->display_servers, display_server);
         g_signal_connect (display_server, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (display_server_ready_cb), seat);
         g_signal_connect (display_server, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (display_server_stopped_cb), seat);
     }
@@ -1346,9 +1396,11 @@ start_display_server (Seat *seat, DisplayServer *display_server)
 gboolean
 seat_switch_to_greeter (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     g_return_val_if_fail (seat != NULL, FALSE);
 
-    if (!seat_get_can_switch (seat) && seat->priv->sessions != NULL)
+    if (!seat_get_can_switch (seat) && priv->sessions != NULL)
         return FALSE;
 
     /* Switch to greeter if one open */
@@ -1364,12 +1416,12 @@ seat_switch_to_greeter (Seat *seat)
     if (!greeter_session)
         return FALSE;
 
-    g_clear_object (&seat->priv->session_to_activate);
-    seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
+    g_clear_object (&priv->session_to_activate);
+    priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
     DisplayServer *display_server = create_display_server (seat, SESSION (greeter_session));
     if (!display_server) {
-        g_clear_object (&seat->priv->session_to_activate);
+        g_clear_object (&priv->session_to_activate);
         return FALSE;
     }
     session_set_display_server (SESSION (greeter_session), display_server);
@@ -1380,6 +1432,8 @@ seat_switch_to_greeter (Seat *seat)
 static void
 switch_authentication_complete_cb (Session *session, Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     /* If authenticated, then unlock existing session or start new one */
     if (session_get_is_authenticated (session))
     {
@@ -1394,8 +1448,8 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
         else
         {
             l_debug (seat, "Session authenticated, starting display server");
-            g_clear_object (&seat->priv->session_to_activate);
-            seat->priv->session_to_activate = g_object_ref (session);
+            g_clear_object (&priv->session_to_activate);
+            priv->session_to_activate = g_object_ref (session);
             DisplayServer *display_server = create_display_server (seat, session);
             session_set_display_server (session, display_server);
             start_display_server (seat, display_server);
@@ -1434,8 +1488,8 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
     }
     else
     {
-        g_clear_object (&seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
+        g_clear_object (&priv->session_to_activate);
+        priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
         DisplayServer *display_server = create_display_server (seat, SESSION (greeter_session));
         session_set_display_server (SESSION (greeter_session), display_server);
@@ -1446,6 +1500,8 @@ switch_authentication_complete_cb (Session *session, Seat *seat)
 gboolean
 seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_name)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     g_return_val_if_fail (seat != NULL, FALSE);
     g_return_val_if_fail (username != NULL, FALSE);
 
@@ -1454,7 +1510,7 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
 
     /* If we're already on this session, then ignore */
     Session *session = find_user_session (seat, username, NULL);
-    if (session && session == seat->priv->active_session)
+    if (session && session == priv->active_session)
         return TRUE;
 
     l_debug (seat, "Switching to user %s", username);
@@ -1470,7 +1526,9 @@ seat_switch_to_user (Seat *seat, const gchar *username, const gchar *session_nam
 static Session *
 find_guest_session (Seat *seat)
 {
-    for (GList *link = seat->priv->sessions; link; link = link->next)
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
         if (!session_get_is_stopping (session) && session_get_is_guest (session))
@@ -1483,6 +1541,8 @@ find_guest_session (Seat *seat)
 gboolean
 seat_switch_to_guest (Seat *seat, const gchar *session_name)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat_get_can_switch (seat) || !seat_get_allow_guest (seat))
@@ -1503,8 +1563,8 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
 
     DisplayServer *display_server = create_display_server (seat, session);
 
-    g_clear_object (&seat->priv->session_to_activate);
-    seat->priv->session_to_activate = g_object_ref (session);
+    g_clear_object (&priv->session_to_activate);
+    priv->session_to_activate = g_object_ref (session);
     session_set_pam_service (session, seat_get_string_property (seat, "pam-autologin-service"));
     session_set_display_server (session, display_server);
 
@@ -1514,6 +1574,8 @@ seat_switch_to_guest (Seat *seat, const gchar *session_name)
 gboolean
 seat_lock (Seat *seat, const gchar *username)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat_get_can_switch (seat))
@@ -1571,13 +1633,13 @@ seat_lock (Seat *seat, const gchar *username)
             display_server = create_display_server (seat, SESSION (greeter_session));
         session_set_display_server (SESSION (greeter_session), display_server);
 
-        g_clear_object (&seat->priv->session_to_activate);
-        seat->priv->session_to_activate = g_object_ref (SESSION (greeter_session));
+        g_clear_object (&priv->session_to_activate);
+        priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
         if (reuse_xserver)
         {
-            g_clear_object (&seat->priv->replacement_greeter);
-            seat->priv->replacement_greeter = g_object_ref (greeter_session);
+            g_clear_object (&priv->replacement_greeter);
+            priv->replacement_greeter = g_object_ref (greeter_session);
             return TRUE;
         }
         else
@@ -1588,21 +1650,24 @@ seat_lock (Seat *seat, const gchar *username)
 void
 seat_stop (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     g_return_if_fail (seat != NULL);
 
-    if (seat->priv->stopping)
+    if (priv->stopping)
         return;
 
     l_debug (seat, "Stopping");
-    seat->priv->stopping = TRUE;
+    priv->stopping = TRUE;
     SEAT_GET_CLASS (seat)->stop (seat);
 }
 
 gboolean
 seat_get_is_stopping (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, FALSE);
-    return seat->priv->stopping;
+    return priv->stopping;
 }
 
 static void
@@ -1613,6 +1678,8 @@ seat_real_setup (Seat *seat)
 static gboolean
 seat_real_start (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     /* Get autologin settings */
     const gchar *autologin_username = seat_get_string_property (seat, "autologin-user");
     if (g_strcmp0 (autologin_username, "") == 0)
@@ -1642,8 +1709,8 @@ seat_real_start (Seat *seat)
 
         if (session)
         {
-            g_clear_object (&seat->priv->session_to_activate);
-            seat->priv->session_to_activate = g_object_ref (session);
+            g_clear_object (&priv->session_to_activate);
+            priv->session_to_activate = g_object_ref (session);
 
             DisplayServer *display_server = create_display_server (seat, session);
             session_set_display_server (session, display_server);
@@ -1668,9 +1735,9 @@ seat_real_start (Seat *seat)
             return FALSE;
         }
 
-        g_clear_object (&seat->priv->session_to_activate);
+        g_clear_object (&priv->session_to_activate);
         session = SESSION (greeter_session);
-        seat->priv->session_to_activate = g_object_ref (session);
+        priv->session_to_activate = g_object_ref (session);
 
         DisplayServer *display_server = create_display_server (seat, session);
         session_set_display_server (session, display_server);
@@ -1712,7 +1779,9 @@ seat_real_create_display_server (Seat *seat, Session *session)
 static gboolean
 seat_real_display_server_is_used (Seat *seat, DisplayServer *display_server)
 {
-    for (GList *link = seat->priv->sessions; link; link = link->next)
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
 
@@ -1785,13 +1854,15 @@ seat_real_get_active_session (Seat *seat)
 static void
 seat_real_stop (Seat *seat)
 {
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
     check_stopped (seat);
-    if (seat->priv->stopped)
+    if (priv->stopped)
         return;
 
     /* Stop all the display servers and sessions on the seat. Copy the list as
      * it might be modified if a display server / session stops during this loop */
-    GList *list = g_list_copy (seat->priv->display_servers);
+    GList *list = g_list_copy (priv->display_servers);
     for (GList *link = list; link; link = link->next)
         g_object_ref (link->data);
     for (GList *link = list; link; link = link->next)
@@ -1804,7 +1875,7 @@ seat_real_stop (Seat *seat)
         }
     }
     g_list_free_full (list, g_object_unref);
-    list = g_list_copy (seat->priv->sessions);
+    list = g_list_copy (priv->sessions);
     for (GList *link = list; link; link = link->next)
         g_object_ref (link->data);
     for (GList *link = list; link; link = link->next)
@@ -1822,34 +1893,36 @@ seat_real_stop (Seat *seat)
 static void
 seat_init (Seat *seat)
 {
-    seat->priv = G_TYPE_INSTANCE_GET_PRIVATE (seat, SEAT_TYPE, SeatPrivate);
-    seat->priv->properties = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-    seat->priv->share_display_server = TRUE;
+    SeatPrivate *priv = seat_get_instance_private (seat);
+
+    priv->properties = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    priv->share_display_server = TRUE;
 }
 
 static void
 seat_finalize (GObject *object)
 {
     Seat *self = SEAT (object);
+    SeatPrivate *priv = seat_get_instance_private (SEAT (self));
 
-    g_free (self->priv->name);
-    g_hash_table_unref (self->priv->properties);
-    for (GList *link = self->priv->display_servers; link; link = link->next)
+    g_free (priv->name);
+    g_hash_table_unref (priv->properties);
+    for (GList *link = priv->display_servers; link; link = link->next)
     {
         DisplayServer *display_server = link->data;
         g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
     }
-    g_list_free_full (self->priv->display_servers, g_object_unref);
-    for (GList *link = self->priv->sessions; link; link = link->next)
+    g_list_free_full (priv->display_servers, g_object_unref);
+    for (GList *link = priv->sessions; link; link = link->next)
     {
         Session *session = link->data;
         g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
     }
-    g_list_free_full (self->priv->sessions, g_object_unref);
-    g_clear_object (&self->priv->active_session);
-    g_clear_object (&self->priv->next_session);
-    g_clear_object (&self->priv->session_to_activate);
-    g_clear_object (&self->priv->replacement_greeter);
+    g_list_free_full (priv->sessions, g_object_unref);
+    g_clear_object (&priv->active_session);
+    g_clear_object (&priv->next_session);
+    g_clear_object (&priv->session_to_activate);
+    g_clear_object (&priv->replacement_greeter);
 
     G_OBJECT_CLASS (seat_parent_class)->finalize (object);
 }
@@ -1910,7 +1983,7 @@ seat_class_init (SeatClass *klass)
 static gint
 seat_real_logprefix (Logger *self, gchar *buf, gulong buflen)
 {
-    return g_snprintf (buf, buflen, "Seat %s: ", SEAT (self)->priv->name);
+    return g_snprintf (buf, buflen, "Seat %s: ", seat_get_name (SEAT (self)));
 }
 
 static void

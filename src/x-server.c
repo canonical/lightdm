@@ -16,7 +16,7 @@
 #include "x-server.h"
 #include "configuration.h"
 
-struct XServerPrivate
+typedef struct
 {
     /* Host running the server */
     gchar *hostname;
@@ -29,25 +29,29 @@ struct XServerPrivate
 
     /* Connection to this X server */
     xcb_connection_t *connection;
-};
+} XServerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XServer, x_server, DISPLAY_SERVER_TYPE)
 
 void
 x_server_set_hostname (XServer *server, const gchar *hostname)
 {
+    XServerPrivate *priv = x_server_get_instance_private (server);
+
     g_return_if_fail (server != NULL);
-    g_free (server->priv->hostname);
-    server->priv->hostname = g_strdup (hostname);
-    g_free (server->priv->address);
-    server->priv->address = NULL;
+
+    g_free (priv->hostname);
+    priv->hostname = g_strdup (hostname);
+    g_free (priv->address);
+    priv->address = NULL;
 }
 
 gchar *
 x_server_get_hostname (XServer *server)
 {
+    XServerPrivate *priv = x_server_get_instance_private (server);
     g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->hostname;
+    return priv->hostname;
 }
 
 guint
@@ -60,34 +64,39 @@ x_server_get_display_number (XServer *server)
 const gchar *
 x_server_get_address (XServer *server)
 {
+    XServerPrivate *priv = x_server_get_instance_private (server);
+
     g_return_val_if_fail (server != NULL, NULL);
 
-    if (!server->priv->address)
+    if (!priv->address)
     {
-        if (server->priv->hostname)
-            server->priv->address = g_strdup_printf("%s:%d", server->priv->hostname, x_server_get_display_number (server));
+        if (priv->hostname)
+            priv->address = g_strdup_printf("%s:%d", priv->hostname, x_server_get_display_number (server));
         else
-            server->priv->address = g_strdup_printf(":%d", x_server_get_display_number (server));
+            priv->address = g_strdup_printf(":%d", x_server_get_display_number (server));
     }
 
-    return server->priv->address;
+    return priv->address;
 }
 
 void
 x_server_set_authority (XServer *server, XAuthority *authority)
 {
+    XServerPrivate *priv = x_server_get_instance_private (server);
+
     g_return_if_fail (server != NULL);
 
-    g_clear_object (&server->priv->authority);
+    g_clear_object (&priv->authority);
     if (authority)
-        server->priv->authority = g_object_ref (authority);
+        priv->authority = g_object_ref (authority);
 }
 
 XAuthority *
 x_server_get_authority (XServer *server)
 {
+    XServerPrivate *priv = x_server_get_instance_private (server);
     g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->authority;
+    return priv->authority;
 }
 
 static const gchar *
@@ -106,21 +115,22 @@ static gboolean
 x_server_start (DisplayServer *display_server)
 {
     XServer *server = X_SERVER (display_server);
+    XServerPrivate *priv = x_server_get_instance_private (server);
 
     xcb_auth_info_t *auth = NULL, a;
-    if (server->priv->authority)
+    if (priv->authority)
     {
-        a.namelen = strlen (x_authority_get_authorization_name (server->priv->authority));
-        a.name = (char *) x_authority_get_authorization_name (server->priv->authority);
-        a.datalen = x_authority_get_authorization_data_length (server->priv->authority);
-        a.data = (char *) x_authority_get_authorization_data (server->priv->authority);
+        a.namelen = strlen (x_authority_get_authorization_name (priv->authority));
+        a.name = (char *) x_authority_get_authorization_name (priv->authority);
+        a.datalen = x_authority_get_authorization_data_length (priv->authority);
+        a.data = (char *) x_authority_get_authorization_data (priv->authority);
         auth = &a;
     }
 
     /* Open connection */
     l_debug (server, "Connecting to XServer %s", x_server_get_address (server));
-    server->priv->connection = xcb_connect_to_display_with_auth_info (x_server_get_address (server), auth, NULL);
-    if (xcb_connection_has_error (server->priv->connection))
+    priv->connection = xcb_connect_to_display_with_auth_info (x_server_get_address (server), auth, NULL);
+    if (xcb_connection_has_error (priv->connection))
     {
         l_debug (server, "Error connecting to XServer %s", x_server_get_address (server));
         return FALSE;
@@ -178,20 +188,20 @@ x_server_disconnect_session (DisplayServer *display_server, Session *session)
 void
 x_server_init (XServer *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_TYPE, XServerPrivate);
 }
 
 static void
 x_server_finalize (GObject *object)
 {
     XServer *self = X_SERVER (object);
+    XServerPrivate *priv = x_server_get_instance_private (self);
 
-    g_clear_pointer (&self->priv->hostname, g_free);
-    g_clear_pointer (&self->priv->address, g_free);
-    g_clear_object (&self->priv->authority);
-    if (self->priv->connection)
-        xcb_disconnect (self->priv->connection);
-    self->priv->connection = NULL;
+    g_clear_pointer (&priv->hostname, g_free);
+    g_clear_pointer (&priv->address, g_free);
+    g_clear_object (&priv->authority);
+    if (priv->connection)
+        xcb_disconnect (priv->connection);
+    priv->connection = NULL;
 
     G_OBJECT_CLASS (x_server_parent_class)->finalize (object);
 }

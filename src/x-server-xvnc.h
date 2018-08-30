@@ -20,12 +20,9 @@ G_BEGIN_DECLS
 #define X_SERVER_XVNC(obj)    (G_TYPE_CHECK_INSTANCE_CAST ((obj), X_SERVER_XVNC_TYPE, XServerXVNC))
 #define IS_X_SERVER_XVNC(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), X_SERVER_XVNC_TYPE))
 
-typedef struct XServerXVNCPrivate XServerXVNCPrivate;
-
 typedef struct
 {
-    XServerLocal        parent_instance;
-    XServerXVNCPrivate *priv;
+    XServerLocal parent_instance;
 } XServerXVNC;
 
 typedef struct

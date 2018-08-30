@@ -21,12 +21,9 @@ G_BEGIN_DECLS
 #define WAYLAND_SESSION(obj)    (G_TYPE_CHECK_INSTANCE_CAST ((obj), WAYLAND_SESSION_TYPE, WaylandSession))
 #define IS_WAYLAND_SESSION(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), WAYLAND_SESSION_TYPE))
 
-typedef struct WaylandSessionPrivate WaylandSessionPrivate;
-
 typedef struct
 {
-    DisplayServer          parent_instance;
-    WaylandSessionPrivate *priv;
+    DisplayServer parent_instance;
 } WaylandSession;
 
 typedef struct

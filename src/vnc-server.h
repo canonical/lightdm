@@ -21,12 +21,9 @@ G_BEGIN_DECLS
 
 #define VNC_SERVER_SIGNAL_NEW_CONNECTION "new-connection"
 
-typedef struct VNCServerPrivate VNCServerPrivate;
-
 typedef struct
 {
-    GObject         parent_instance;
-    VNCServerPrivate *priv;
+    GObject parent_instance;
 } VNCServer;
 
 typedef struct

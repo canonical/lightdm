@@ -21,12 +21,9 @@ G_BEGIN_DECLS
 #define UNITY_SYSTEM_COMPOSITOR(obj)    (G_TYPE_CHECK_INSTANCE_CAST ((obj), UNITY_SYSTEM_COMPOSITOR_TYPE, UnitySystemCompositor))
 #define IS_UNITY_SYSTEM_COMPOSITOR(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), UNITY_SYSTEM_COMPOSITOR_TYPE))
 
-typedef struct UnitySystemCompositorPrivate UnitySystemCompositorPrivate;
-
 typedef struct
 {
-    DisplayServer                 parent_instance;
-    UnitySystemCompositorPrivate *priv;
+    DisplayServer parent_instance;
 } UnitySystemCompositor;
 
 typedef struct

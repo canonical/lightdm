@@ -25,12 +25,9 @@ G_BEGIN_DECLS
 #define DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED "seat-removed"
 #define DISPLAY_MANAGER_SIGNAL_STOPPED      "stopped"
 
-typedef struct DisplayManagerPrivate DisplayManagerPrivate;
-
 typedef struct
 {
-    GObject         parent_instance;
-    DisplayManagerPrivate *priv;
+    GObject parent_instance;
 } DisplayManager;
 
 typedef struct

@@ -20,14 +20,14 @@
 #include "configuration.h"
 #include "process.h"
 
-struct XServerXVNCPrivate
+typedef struct
 {
     /* File descriptor to use for standard input */
     gint socket_fd;
 
     /* Geometry and colour depth */
     gint width, height, depth;
-};
+} XServerXVNCPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XServerXVNC, x_server_xvnc, X_SERVER_LOCAL_TYPE)
 
@@ -43,41 +43,46 @@ x_server_xvnc_new (void)
 void
 x_server_xvnc_set_socket (XServerXVNC *server, int fd)
 {
+    XServerXVNCPrivate *priv = x_server_xvnc_get_instance_private (server);
     g_return_if_fail (server != NULL);
-    server->priv->socket_fd = fd;
+    priv->socket_fd = fd;
 }
 
 int
 x_server_xvnc_get_socket (XServerXVNC *server)
 {
+    XServerXVNCPrivate *priv = x_server_xvnc_get_instance_private (server);
     g_return_val_if_fail (server != NULL, 0);
-    return server->priv->socket_fd;
+    return priv->socket_fd;
 }
 
 void
 x_server_xvnc_set_geometry (XServerXVNC *server, gint width, gint height)
 {
+    XServerXVNCPrivate *priv = x_server_xvnc_get_instance_private (server);
     g_return_if_fail (server != NULL);
-    server->priv->width = width;
-    server->priv->height = height;
+    priv->width = width;
+    priv->height = height;
 }
 
 void
 x_server_xvnc_set_depth (XServerXVNC *server, gint depth)
 {
+    XServerXVNCPrivate *priv = x_server_xvnc_get_instance_private (server);
     g_return_if_fail (server != NULL);
-    server->priv->depth = depth;
+    priv->depth = depth;
 }
 
 static void
 x_server_xvnc_run (Process *process, gpointer user_data)
 {
     XServerXVNC *server = user_data;
+    XServerXVNCPrivate *priv = x_server_xvnc_get_instance_private (server);
 
     /* Connect input */
-    dup2 (server->priv->socket_fd, STDIN_FILENO);
-    dup2 (server->priv->socket_fd, STDOUT_FILENO);
-    close (server->priv->socket_fd);
+    dup2 (priv->socket_fd, STDIN_FILENO);
+    dup2 (priv->socket_fd, STDOUT_FILENO);
+    close (priv->socket_fd);
 
     /* Set SIGUSR1 to ignore so the X server can indicate it when it is ready */
     signal (SIGUSR1, SIG_IGN);
@@ -105,23 +110,24 @@ static void
 x_server_xvnc_add_args (XServerLocal *x_server, GString *command)
 {
     XServerXVNC *server = X_SERVER_XVNC (x_server);
+    XServerXVNCPrivate *priv = x_server_xvnc_get_instance_private (server);
 
     g_string_append (command, " -inetd");
 
-    if (server->priv->width > 0 && server->priv->height > 0)
-        g_string_append_printf (command, " -geometry %dx%d", server->priv->width, server->priv->height);
+    if (priv->width > 0 && priv->height > 0)
+        g_string_append_printf (command, " -geometry %dx%d", priv->width, priv->height);
 
-    if (server->priv->depth > 0)
-        g_string_append_printf (command, " -depth %d", server->priv->depth);
+    if (priv->depth > 0)
+        g_string_append_printf (command, " -depth %d", priv->depth);
 }
 
 static void
 x_server_xvnc_init (XServerXVNC *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_XVNC_TYPE, XServerXVNCPrivate);
-    server->priv->width = 1024;
-    server->priv->height = 768;
-    server->priv->depth = 8;
+    XServerXVNCPrivate *priv = x_server_xvnc_get_instance_private (server);
+    priv->width = 1024;
+    priv->height = 768;
+    priv->depth = 8;
 }
 
 static void

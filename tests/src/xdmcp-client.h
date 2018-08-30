@@ -4,6 +4,11 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+G_BEGIN_DECLS
+
+#define XDMCP_CLIENT_TYPE (xdmcp_client_get_type())
+#define XDMCP_CLIENT(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), XDMCP_CLIENT_TYPE, XDMCPClient))
+
 #define XDMCP_VERSION 1
 #define XDMCP_PORT 177
 
@@ -58,12 +63,9 @@ typedef struct
     guint32 session_id;
 } XDMCPAlive;
 
-typedef struct XDMCPClientPrivate XDMCPClientPrivate;
-
 typedef struct
 {
-   GObject             parent_instance;
-   XDMCPClientPrivate *priv;
+   GObject parent_instance;
 } XDMCPClient;
 
 typedef struct

@@ -11,7 +11,7 @@
 
 #include "session-config.h"
 
-struct SessionConfigPrivate
+typedef struct
 {
     /* Session type */
     gchar *session_type;
@@ -24,7 +24,7 @@ struct SessionConfigPrivate
 
     /* TRUE if can run a greeter inside the session */
     gboolean allow_greeter;
-};
+}  SessionConfigPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (SessionConfig, session_config, G_TYPE_OBJECT)
 
@@ -45,25 +45,26 @@ session_config_new_from_file (const gchar *filename, const gchar *default_sessio
     }
 
     g_autoptr(SessionConfig) config = g_object_new (SESSION_CONFIG_TYPE, NULL);
-    config->priv->command = g_steal_pointer (&command);
-    config->priv->session_type = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
-    if (!config->priv->session_type)
-        config->priv->session_type = g_strdup (default_session_type);
+    SessionConfigPrivate *priv = session_config_get_instance_private (config);
+    priv->command = g_steal_pointer (&command);
+    priv->session_type = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Session-Type", NULL);
+    if (!priv->session_type)
+        priv->session_type = g_strdup (default_session_type);
 
-    config->priv->desktop_names = g_key_file_get_string_list (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL, NULL);
-    if (!config->priv->desktop_names)
+    priv->desktop_names = g_key_file_get_string_list (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "DesktopNames", NULL, NULL);
+    if (!priv->desktop_names)
     {
         gchar *name;
 
         name = g_key_file_get_string (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-DesktopName", NULL);
         if (name)
         {
-            config->priv->desktop_names = g_malloc (sizeof (gchar *) * 2);
-            config->priv->desktop_names[0] = name;
-            config->priv->desktop_names[1] = NULL;
+            priv->desktop_names = g_malloc (sizeof (gchar *) * 2);
+            priv->desktop_names[0] = name;
+            priv->desktop_names[1] = NULL;
         }
     }
-    config->priv->allow_greeter = g_key_file_get_boolean (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Allow-Greeter", NULL);
+    priv->allow_greeter = g_key_file_get_boolean (desktop_file, G_KEY_FILE_DESKTOP_GROUP, "X-LightDM-Allow-Greeter", NULL);
 
     return g_steal_pointer (&config);
 }
@@ -71,45 +72,49 @@ session_config_new_from_file (const gchar *filename, const gchar *default_sessio
 const gchar *
 session_config_get_command (SessionConfig *config)
 {
+    SessionConfigPrivate *priv = session_config_get_instance_private (config);
     g_return_val_if_fail (config != NULL, NULL);
-    return config->priv->command;
+    return priv->command;
 }
 
 const gchar *
 session_config_get_session_type (SessionConfig *config)
 {
+    SessionConfigPrivate *priv = session_config_get_instance_private (config);
     g_return_val_if_fail (config != NULL, NULL);
-    return config->priv->session_type;
+    return priv->session_type;
 }
 
 gchar **
 session_config_get_desktop_names (SessionConfig *config)
 {
+    SessionConfigPrivate *priv = session_config_get_instance_private (config);
     g_return_val_if_fail (config != NULL, NULL);
-    return config->priv->desktop_names;
+    return priv->desktop_names;
 }
 
 gboolean
 session_config_get_allow_greeter (SessionConfig *config)
 {
+    SessionConfigPrivate *priv = session_config_get_instance_private (config);
     g_return_val_if_fail (config != NULL, FALSE);
-    return config->priv->allow_greeter;
+    return priv->allow_greeter;
 }
 
 static void
 session_config_init (SessionConfig *config)
 {
-    config->priv = G_TYPE_INSTANCE_GET_PRIVATE (config, SESSION_CONFIG_TYPE, SessionConfigPrivate);
 }
 
 static void
 session_config_finalize (GObject *object)
 {
     SessionConfig *self = SESSION_CONFIG (object);
+    SessionConfigPrivate *priv = session_config_get_instance_private (self);
 
-    g_clear_pointer (&self->priv->session_type, g_free);
-    g_clear_pointer (&self->priv->desktop_names, g_strfreev);
-    g_clear_pointer (&self->priv->command, g_free);
+    g_clear_pointer (&priv->session_type, g_free);
+    g_clear_pointer (&priv->desktop_names, g_strfreev);
+    g_clear_pointer (&priv->command, g_free);
 
     G_OBJECT_CLASS (session_config_parent_class)->finalize (object);
 }

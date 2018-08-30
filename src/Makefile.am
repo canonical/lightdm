@@ -76,8 +76,7 @@ lightdm_SOURCES = \
 	xdmcp-server.c \
 	xdmcp-server.h \
 	xdmcp-session.c \
-	xdmcp-session.h \
-	xdmcp-session-private.h
+	xdmcp-session.h
 
 lightdm_CFLAGS = \
 	$(WARN_CFLAGS) \

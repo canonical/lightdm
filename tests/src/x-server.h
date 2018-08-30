@@ -6,18 +6,18 @@
 
 G_BEGIN_DECLS
 
+#define X_SERVER_TYPE (x_server_get_type())
+#define X_SERVER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), X_SERVER_TYPE, XServer))
+
 #define X_CLIENT_SIGNAL_DISCONNECTED "disconnected"
 
 #define X_SERVER_SIGNAL_CLIENT_CONNECTED    "client-connected"
 #define X_SERVER_SIGNAL_CLIENT_DISCONNECTED "client-disconnected"
 #define X_SERVER_SIGNAL_RESET               "reset"
 
-typedef struct XClientPrivate XClientPrivate;
-
 typedef struct
 {
-   GObject         parent_instance;
-   XClientPrivate *priv;
+   GObject parent_instance;
 } XClient;
 
 typedef struct
@@ -26,12 +26,9 @@ typedef struct
    void (*disconnected)(XClient *client);
 } XClientClass;
 
-typedef struct XServerPrivate XServerPrivate;
-
 typedef struct
 {
-   GObject         parent_instance;
-   XServerPrivate *priv;
+   GObject parent_instance;
 } XServer;
 
 typedef struct

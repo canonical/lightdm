@@ -22,7 +22,7 @@ G_BEGIN_DECLS
 
 typedef struct
 {
-    Seat               parent_instance;
+    Seat parent_instance;
 } SeatXRemote;
 
 typedef struct

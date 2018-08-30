@@ -20,7 +20,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct DisplayServerPrivate
+typedef struct
 {
     /* TRUE when started */
     gboolean is_ready;
@@ -30,7 +30,7 @@ struct DisplayServerPrivate
 
     /* TRUE when the display server has stopped */
     gboolean stopped;
-};
+} DisplayServerPrivate;
 
 static void display_server_logger_iface_init (LoggerInterface *iface);
 
@@ -93,14 +93,16 @@ display_server_start (DisplayServer *server)
 gboolean
 display_server_get_is_ready (DisplayServer *server)
 {
+    DisplayServerPrivate *priv = display_server_get_instance_private (server);
     g_return_val_if_fail (server != NULL, FALSE);
-    return server->priv->is_ready;
+    return priv->is_ready;
 }
 
 static gboolean
 display_server_real_start (DisplayServer *server)
 {
-    server->priv->is_ready = TRUE;
+    DisplayServerPrivate *priv = display_server_get_instance_private (server);
+    priv->is_ready = TRUE;
     g_signal_emit (server, signals[READY], 0);
     return TRUE;
 }
@@ -130,11 +132,13 @@ display_server_real_disconnect_session (DisplayServer *server, Session *session)
 void
 display_server_stop (DisplayServer *server)
 {
+    DisplayServerPrivate *priv = display_server_get_instance_private (server);
+
     g_return_if_fail (server != NULL);
 
-    if (server->priv->stopping)
+    if (priv->stopping)
         return;
-    server->priv->stopping = TRUE;
+    priv->stopping = TRUE;
 
     DISPLAY_SERVER_GET_CLASS (server)->stop (server);
 }
@@ -142,8 +146,9 @@ display_server_stop (DisplayServer *server)
 gboolean
 display_server_get_is_stopping (DisplayServer *server)
 {
+    DisplayServerPrivate *priv = display_server_get_instance_private (server);
     g_return_val_if_fail (server != NULL, FALSE);
-    return server->priv->stopping;
+    return priv->stopping;
 }
 
 static void
@@ -155,7 +160,6 @@ display_server_real_stop (DisplayServer *server)
 static void
 display_server_init (DisplayServer *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, DISPLAY_SERVER_TYPE, DisplayServerPrivate);
 }
 
 static void

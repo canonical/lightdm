@@ -23,12 +23,9 @@ G_BEGIN_DECLS
 #define SHARED_DATA_MANAGER_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), SHARED_DATA_MANAGER_TYPE, SharedDataManagerClass))
 #define SHARED_DATA_MANAGER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), SHARED_DATA_MANAGER_TYPE, SharedDataManagerClass))
 
-typedef struct SharedDataManagerPrivate SharedDataManagerPrivate;
-
 struct SharedDataManager
 {
-    GObject                   parent_instance;
-    SharedDataManagerPrivate *priv;
+    GObject parent_instance;
 };
 
 typedef struct

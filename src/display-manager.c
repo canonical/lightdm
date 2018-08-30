@@ -30,7 +30,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct DisplayManagerPrivate
+typedef struct
 {
     /* The seats available */
     GList *seats;
@@ -40,7 +40,7 @@ struct DisplayManagerPrivate
 
     /* TRUE if stopped */
     gboolean stopped;
-};
+} DisplayManagerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (DisplayManager, display_manager, G_TYPE_OBJECT)
 
@@ -53,13 +53,16 @@ display_manager_new (void)
 GList *
 display_manager_get_seats (DisplayManager *manager)
 {
-    return manager->priv->seats;
+    DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
+    return priv->seats;
 }
 
 Seat *
 display_manager_get_seat (DisplayManager *manager, const gchar *name)
 {
-    for (GList *link = manager->priv->seats; link; link = link->next)
+    DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
+
+    for (GList *link = priv->seats; link; link = link->next)
     {
         Seat *seat = link->data;
 
@@ -73,11 +76,13 @@ display_manager_get_seat (DisplayManager *manager, const gchar *name)
 static void
 check_stopped (DisplayManager *manager)
 {
-    if (manager->priv->stopping &&
-        !manager->priv->stopped &&
-        g_list_length (manager->priv->seats) == 0)
+    DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
+
+    if (priv->stopping &&
+        !priv->stopped &&
+        g_list_length (priv->seats) == 0)
     {
-        manager->priv->stopped = TRUE;
+        priv->stopped = TRUE;
         g_debug ("Display manager stopped");
         g_signal_emit (manager, signals[STOPPED], 0);
     }
@@ -86,10 +91,12 @@ check_stopped (DisplayManager *manager)
 static void
 seat_stopped_cb (Seat *seat, DisplayManager *manager)
 {
-    manager->priv->seats = g_list_remove (manager->priv->seats, seat);
+    DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
+
+    priv->seats = g_list_remove (priv->seats, seat);
     g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, manager);
 
-    if (!manager->priv->stopping)
+    if (!priv->stopping)
         g_signal_emit (manager, signals[SEAT_REMOVED], 0, seat);
 
     g_object_unref (seat);
@@ -100,15 +107,15 @@ seat_stopped_cb (Seat *seat, DisplayManager *manager)
 gboolean
 display_manager_add_seat (DisplayManager *manager, Seat *seat)
 {
-    gboolean result;
+    DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
 
-    g_return_val_if_fail (!manager->priv->stopping, FALSE);
+    g_return_val_if_fail (!priv->stopping, FALSE);
 
-    result = seat_start (SEAT (seat));
+    gboolean result = seat_start (SEAT (seat));
     if (!result)
         return FALSE;
 
-    manager->priv->seats = g_list_append (manager->priv->seats, g_object_ref (seat));
+    priv->seats = g_list_append (priv->seats, g_object_ref (seat));
     g_signal_connect (seat, SEAT_SIGNAL_STOPPED, G_CALLBACK (seat_stopped_cb), manager);
     g_signal_emit (manager, signals[SEAT_ADDED], 0, seat);
 
@@ -131,17 +138,19 @@ display_manager_start (DisplayManager *manager)
 void
 display_manager_stop (DisplayManager *manager)
 {
+    DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
+
     g_return_if_fail (manager != NULL);
 
-    if (manager->priv->stopping)
+    if (priv->stopping)
         return;
 
     g_debug ("Stopping display manager");
 
-    manager->priv->stopping = TRUE;
+    priv->stopping = TRUE;
 
     /* Stop all the seats. Copy the list as it might be modified if a seat stops during this loop */
-    GList *seats = g_list_copy (manager->priv->seats);
+    GList *seats = g_list_copy (priv->seats);
     for (GList *link = seats; link; link = link->next)
     {
         Seat *seat = link->data;
@@ -155,8 +164,6 @@ display_manager_stop (DisplayManager *manager)
 static void
 display_manager_init (DisplayManager *manager)
 {
-    manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, DISPLAY_MANAGER_TYPE, DisplayManagerPrivate);
-
     /* Load the seat modules */
     seat_register_module ("local", SEAT_LOCAL_TYPE);
     seat_register_module ("xremote", SEAT_XREMOTE_TYPE);
@@ -167,13 +174,14 @@ static void
 display_manager_finalize (GObject *object)
 {
     DisplayManager *self = DISPLAY_MANAGER (object);
+    DisplayManagerPrivate *priv = display_manager_get_instance_private (self);
 
-    for (GList *link = self->priv->seats; link; link = link->next)
+    for (GList *link = priv->seats; link; link = link->next)
     {
         Seat *seat = link->data;
         g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
     }
-    g_list_free_full (self->priv->seats, g_object_unref);
+    g_list_free_full (priv->seats, g_object_unref);
 
     G_OBJECT_CLASS (display_manager_parent_class)->finalize (object);
 }

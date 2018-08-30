@@ -13,11 +13,11 @@
 
 #include "x-server-remote.h"
 
-struct XServerRemotePrivate
+typedef struct
 {
     /* Display number to use */
     guint display_number;
-};
+} XServerRemotePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XServerRemote, x_server_remote, X_SERVER_TYPE)
 
@@ -25,8 +25,9 @@ XServerRemote *
 x_server_remote_new (const gchar *hostname, guint number, XAuthority *authority)
 {
     XServerRemote *server = g_object_new (X_SERVER_REMOTE_TYPE, NULL);
+    XServerRemotePrivate *priv = x_server_remote_get_instance_private (server);
 
-    server->priv->display_number = number;
+    priv->display_number = number;
 
     x_server_set_hostname (X_SERVER (server), hostname);
     x_server_set_authority (X_SERVER (server), authority);
@@ -37,13 +38,13 @@ x_server_remote_new (const gchar *hostname, guint number, XAuthority *authority)
 static guint
 x_server_remote_get_display_number (XServer *server)
 {
-    return X_SERVER_REMOTE (server)->priv->display_number;
+    XServerRemotePrivate *priv = x_server_remote_get_instance_private (X_SERVER_REMOTE (server));
+    return priv->display_number;
 }
 
 static void
 x_server_remote_init (XServerRemote *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_REMOTE_TYPE, XServerRemotePrivate);
 }
 
 static void

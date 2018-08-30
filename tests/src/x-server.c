@@ -22,7 +22,7 @@ enum {
 };
 static guint x_server_signals[X_SERVER_LAST_SIGNAL] = { 0 };
 
-struct XServerPrivate
+typedef struct
 {
     gint display_number;
 
@@ -30,16 +30,16 @@ struct XServerPrivate
     GSocket *socket;
     GIOChannel *channel;
     GHashTable *clients;
-};
+} XServerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XServer, x_server, G_TYPE_OBJECT)
 
-struct XClientPrivate
+typedef struct
 {
     XServer *server;
     GSocket *socket;
     GIOChannel *channel;
-};
+} XClientPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XClient, x_client, G_TYPE_OBJECT)
 
@@ -53,31 +53,33 @@ static guint x_client_signals[X_CLIENT_LAST_SIGNAL] = { 0 };
 void
 x_client_send_failed (XClient *client, const gchar *reason)
 {
+    XClientPrivate *priv = x_client_get_instance_private (client);
     g_autofree gchar *message = g_strdup_printf ("FAILED:%s", reason);
     errno = 0;
-    if (send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0) != strlen (message))
+    if (send (g_io_channel_unix_get_fd (priv->channel), message, strlen (message), 0) != strlen (message))
         g_printerr ("Failed to send FAILED: %s\n", strerror (errno));
 }
 
 void
 x_client_send_success (XClient *client)
 {
+    XClientPrivate *priv = x_client_get_instance_private (client);
     g_autofree gchar *message = g_strdup ("SUCCESS");
     errno = 0;
-    if (send (g_io_channel_unix_get_fd (client->priv->channel), message, strlen (message), 0) != strlen (message))
+    if (send (g_io_channel_unix_get_fd (priv->channel), message, strlen (message), 0) != strlen (message))
         g_printerr ("Failed to send SUCCESS: %s\n", strerror (errno));
 }
 
 void
 x_client_disconnect (XClient *client)
 {
-    g_io_channel_shutdown (client->priv->channel, TRUE, NULL);
+    XClientPrivate *priv = x_client_get_instance_private (client);
+    g_io_channel_shutdown (priv->channel, TRUE, NULL);
 }
 
 static void
 x_client_init (XClient *client)
 {
-    client->priv = G_TYPE_INSTANCE_GET_PRIVATE (client, x_client_get_type (), XClientPrivate);
 }
 
 static void
@@ -97,7 +99,8 @@ XServer *
 x_server_new (gint display_number)
 {
     XServer *server = g_object_new (x_server_get_type (), NULL);
-    server->priv->display_number = display_number;
+    XServerPrivate *priv = x_server_get_instance_private (server);
+    priv->display_number = display_number;
     return server;
 }
 
@@ -105,19 +108,21 @@ static gboolean
 client_read_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
     XClient *client = data;
+    XClientPrivate *priv = x_client_get_instance_private (client);
 
     g_autofree gchar *d = NULL;
     gsize d_length;
     if (g_io_channel_read_to_end (channel, &d, &d_length, NULL) == G_IO_STATUS_NORMAL && d_length == 0)
     {
-        XServer *server = client->priv->server;
+        XServer *server = priv->server;
+        XServerPrivate *s_priv = x_server_get_instance_private (server);
 
         g_signal_emit (client, x_client_signals[X_CLIENT_DISCONNECTED], 0);
         g_signal_emit (server, x_server_signals[X_SERVER_CLIENT_DISCONNECTED], 0, client);
 
-        g_hash_table_remove (server->priv->clients, client->priv->channel);
+        g_hash_table_remove (s_priv->clients, priv->channel);
 
-        if (g_hash_table_size (server->priv->clients) == 0)
+        if (g_hash_table_size (s_priv->clients) == 0)
             g_signal_emit (server, x_server_signals[X_SERVER_RESET], 0);
 
         return G_SOURCE_REMOVE;
@@ -130,20 +135,22 @@ static gboolean
 socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 {
     XServer *server = data;
+    XServerPrivate *priv = x_server_get_instance_private (server);
 
     g_autoptr(GError) error = NULL;
-    g_autoptr(GSocket) data_socket = g_socket_accept (server->priv->socket, NULL, &error);
+    g_autoptr(GSocket) data_socket = g_socket_accept (priv->socket, NULL, &error);
     if (error)
         g_warning ("Error accepting connection: %s", strerror (errno));
     if (!data_socket)
         return FALSE;
 
     XClient *client = g_object_new (x_client_get_type (), NULL);
-    client->priv->server = server;
-    client->priv->socket = g_steal_pointer (&data_socket);
-    client->priv->channel = g_io_channel_unix_new (g_socket_get_fd (client->priv->socket));
-    g_io_add_watch (client->priv->channel, G_IO_IN | G_IO_HUP, client_read_cb, client);
-    g_hash_table_insert (server->priv->clients, client->priv->channel, client);
+    XClientPrivate *c_priv = x_client_get_instance_private (client);
+    c_priv->server = server;
+    c_priv->socket = g_steal_pointer (&data_socket);
+    c_priv->channel = g_io_channel_unix_new (g_socket_get_fd (c_priv->socket));
+    g_io_add_watch (c_priv->channel, G_IO_IN | G_IO_HUP, client_read_cb, client);
+    g_hash_table_insert (priv->clients, c_priv->channel, client);
 
     g_signal_emit (server, x_server_signals[X_SERVER_CLIENT_CONNECTED], 0, client);
 
@@ -153,20 +160,22 @@ socket_connect_cb (GIOChannel *channel, GIOCondition condition, gpointer data)
 gboolean
 x_server_start (XServer *server)
 {
-    g_autofree gchar *name = g_strdup_printf (".x:%d", server->priv->display_number);
-    server->priv->socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), name, NULL);
+    XServerPrivate *priv = x_server_get_instance_private (server);
+
+    g_autofree gchar *name = g_strdup_printf (".x:%d", priv->display_number);
+    priv->socket_path = g_build_filename (g_getenv ("LIGHTDM_TEST_ROOT"), name, NULL);
 
     g_autoptr(GError) error = NULL;
-    server->priv->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
-    if (!server->priv->socket ||
-        !g_socket_bind (server->priv->socket, g_unix_socket_address_new (server->priv->socket_path), TRUE, &error) ||
-        !g_socket_listen (server->priv->socket, &error))
+    priv->socket = g_socket_new (G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, &error);
+    if (!priv->socket ||
+        !g_socket_bind (priv->socket, g_unix_socket_address_new (priv->socket_path), TRUE, &error) ||
+        !g_socket_listen (priv->socket, &error))
     {
         g_warning ("Error creating Unix X socket: %s", error->message);
         return FALSE;
     }
-    server->priv->channel = g_io_channel_unix_new (g_socket_get_fd (server->priv->socket));
-    g_io_add_watch (server->priv->channel, G_IO_IN, socket_connect_cb, server);
+    priv->channel = g_io_channel_unix_new (g_socket_get_fd (priv->socket));
+    g_io_add_watch (priv->channel, G_IO_IN, socket_connect_cb, server);
 
     return TRUE;
 }
@@ -174,22 +183,25 @@ x_server_start (XServer *server)
 gsize
 x_server_get_n_clients (XServer *server)
 {
-    return g_hash_table_size (server->priv->clients);
+    XServerPrivate *priv = x_server_get_instance_private (server);
+    return g_hash_table_size (priv->clients);
 }
 
 static void
 x_server_init (XServer *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, x_server_get_type (), XServerPrivate);
-    server->priv->clients = g_hash_table_new_full (g_direct_hash, g_direct_equal, (GDestroyNotify) g_io_channel_unref, g_object_unref);
+    XServerPrivate *priv = x_server_get_instance_private (server);
+    priv->clients = g_hash_table_new_full (g_direct_hash, g_direct_equal, (GDestroyNotify) g_io_channel_unref, g_object_unref);
 }
 
 static void
 x_server_finalize (GObject *object)
 {
-    XServer *server = (XServer *) object;
-    if (server->priv->socket_path)
-        unlink (server->priv->socket_path);
+    XServer *server = X_SERVER (object);
+    XServerPrivate *priv = x_server_get_instance_private (server);
+
+    if (priv->socket_path)
+        unlink (priv->socket_path);
     G_OBJECT_CLASS (x_server_parent_class)->finalize (object);
 }
 

@@ -24,12 +24,9 @@ G_BEGIN_DECLS
 #define X_SERVER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), X_SERVER_TYPE, XServerClass))
 #define IS_X_SERVER(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), X_SERVER_TYPE))
 
-typedef struct XServerPrivate XServerPrivate;
-
 typedef struct
 {
-    DisplayServer   parent_instance;
-    XServerPrivate *priv;
+    DisplayServer parent_instance;
 } XServer;
 
 typedef struct

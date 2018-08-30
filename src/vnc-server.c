@@ -19,7 +19,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct VNCServerPrivate
+typedef struct
 {
     /* Port to listen on */
     guint port;
@@ -29,7 +29,7 @@ struct VNCServerPrivate
 
     /* Listening sockets */
     GSocket *socket, *socket6;
-};
+} VNCServerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (VNCServer, vnc_server, G_TYPE_OBJECT)
 
@@ -42,31 +42,36 @@ vnc_server_new (void)
 void
 vnc_server_set_port (VNCServer *server, guint port)
 {
+    VNCServerPrivate *priv = vnc_server_get_instance_private (server);
     g_return_if_fail (server != NULL);
-    server->priv->port = port;
+    priv->port = port;
 }
 
 guint
 vnc_server_get_port (VNCServer *server)
 {
+    VNCServerPrivate *priv = vnc_server_get_instance_private (server);
     g_return_val_if_fail (server != NULL, 0);
-    return server->priv->port;
+    return priv->port;
 }
 
 void
 vnc_server_set_listen_address (VNCServer *server, const gchar *listen_address)
 {
+    VNCServerPrivate *priv = vnc_server_get_instance_private (server);
+
     g_return_if_fail (server != NULL);
 
-    g_free (server->priv->listen_address);
-    server->priv->listen_address = g_strdup (listen_address);
+    g_free (priv->listen_address);
+    priv->listen_address = g_strdup (listen_address);
 }
 
 const gchar *
 vnc_server_get_listen_address (VNCServer *server)
 {
+    VNCServerPrivate *priv = vnc_server_get_instance_private (server);
     g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->listen_address;
+    return priv->listen_address;
 }
 
 static gboolean
@@ -117,33 +122,35 @@ open_tcp_socket (GSocketFamily family, guint port, const gchar *listen_address, 
 gboolean
 vnc_server_start (VNCServer *server)
 {
+    VNCServerPrivate *priv = vnc_server_get_instance_private (server);
+
     g_return_val_if_fail (server != NULL, FALSE);
 
     g_autoptr(GError) ipv4_error = NULL;
-    server->priv->socket = open_tcp_socket (G_SOCKET_FAMILY_IPV4, server->priv->port, server->priv->listen_address, &ipv4_error);
+    priv->socket = open_tcp_socket (G_SOCKET_FAMILY_IPV4, priv->port, priv->listen_address, &ipv4_error);
     if (ipv4_error)
         g_warning ("Failed to create IPv4 VNC socket: %s", ipv4_error->message);
 
-    if (server->priv->socket)
+    if (priv->socket)
     {
-        GSource *source = g_socket_create_source (server->priv->socket, G_IO_IN, NULL);
+        GSource *source = g_socket_create_source (priv->socket, G_IO_IN, NULL);
         g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
         g_source_attach (source, NULL);
     }
 
     g_autoptr(GError) ipv6_error = NULL;
-    server->priv->socket6 = open_tcp_socket (G_SOCKET_FAMILY_IPV6, server->priv->port, server->priv->listen_address, &ipv6_error);
+    priv->socket6 = open_tcp_socket (G_SOCKET_FAMILY_IPV6, priv->port, priv->listen_address, &ipv6_error);
     if (ipv6_error)
         g_warning ("Failed to create IPv6 VNC socket: %s", ipv6_error->message);
 
-    if (server->priv->socket6)
+    if (priv->socket6)
     {
-        GSource *source = g_socket_create_source (server->priv->socket6, G_IO_IN, NULL);
+        GSource *source = g_socket_create_source (priv->socket6, G_IO_IN, NULL);
         g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
         g_source_attach (source, NULL);
     }
 
-    if (!server->priv->socket && !server->priv->socket6)
+    if (!priv->socket && !priv->socket6)
         return FALSE;
 
     return TRUE;
@@ -152,18 +159,19 @@ vnc_server_start (VNCServer *server)
 static void
 vnc_server_init (VNCServer *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, VNC_SERVER_TYPE, VNCServerPrivate);
-    server->priv->port = 5900;
+    VNCServerPrivate *priv = vnc_server_get_instance_private (server);
+    priv->port = 5900;
 }
 
 static void
 vnc_server_finalize (GObject *object)
 {
     VNCServer *self = VNC_SERVER (object);
+    VNCServerPrivate *priv = vnc_server_get_instance_private (self);
 
-    g_clear_pointer (&self->priv->listen_address, g_free);
-    g_clear_object (&self->priv->socket);
-    g_clear_object (&self->priv->socket6);
+    g_clear_pointer (&priv->listen_address, g_free);
+    g_clear_object (&priv->socket);
+    g_clear_object (&priv->socket6);
 
     G_OBJECT_CLASS (vnc_server_parent_class)->finalize (object);
 }

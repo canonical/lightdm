@@ -44,12 +44,9 @@ G_BEGIN_DECLS
 #define SESSION_SIGNAL_AUTHENTICATION_COMPLETE "authentication-complete"
 #define SESSION_SIGNAL_STOPPED                 "stopped"
 
-typedef struct SessionPrivate SessionPrivate;
-
 struct Session
 {
-    GObject         parent_instance;
-    SessionPrivate *priv;
+    GObject parent_instance;
 };
 
 typedef struct

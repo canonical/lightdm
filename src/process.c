@@ -30,7 +30,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct ProcessPrivate
+typedef struct
 {
     /* Function to run inside subprocess before exec */
     ProcessRunFunc run_func;
@@ -64,7 +64,7 @@ struct ProcessPrivate
 
     /* Watch on process */
     guint watch;
-};
+} ProcessPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (Process, process, G_TYPE_OBJECT)
 
@@ -80,7 +80,8 @@ process_get_current (void)
         return current_process;
 
     current_process = process_new (NULL, NULL);
-    current_process->priv->pid = getpid ();
+    ProcessPrivate *priv = process_get_instance_private (current_process);
+    priv->pid = getpid ();
 
     return current_process;
 }
@@ -89,85 +90,96 @@ Process *
 process_new (ProcessRunFunc run_func, gpointer run_func_data)
 {
     Process *process = g_object_new (PROCESS_TYPE, NULL);
-    process->priv->run_func = run_func;
-    process->priv->run_func_data = run_func_data;
-    process->priv->log_mode = LOG_MODE_INVALID;
+    ProcessPrivate *priv = process_get_instance_private (process);
+
+    priv->run_func = run_func;
+    priv->run_func_data = run_func_data;
+    priv->log_mode = LOG_MODE_INVALID;
     return process;
 }
 
 void
 process_set_log_file (Process *process, const gchar *path, gboolean log_stdout, LogMode log_mode)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
+
     g_return_if_fail (process != NULL);
-    g_free (process->priv->log_file);
-    process->priv->log_file = g_strdup (path);
-    process->priv->log_stdout = log_stdout;
-    process->priv->log_mode = log_mode;
+
+    g_free (priv->log_file);
+    priv->log_file = g_strdup (path);
+    priv->log_stdout = log_stdout;
+    priv->log_mode = log_mode;
 }
 
 void
 process_set_clear_environment (Process *process, gboolean clear_environment)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_if_fail (process != NULL);
-    process->priv->clear_environment = clear_environment;
+    priv->clear_environment = clear_environment;
 }
 
 gboolean
 process_get_clear_environment (Process *process)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_val_if_fail (process != NULL, FALSE);
-    return process->priv->clear_environment;
+    return priv->clear_environment;
 }
 
 void
 process_set_env (Process *process, const gchar *name, const gchar *value)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_if_fail (process != NULL);
     g_return_if_fail (name != NULL);
-    g_hash_table_insert (process->priv->env, g_strdup (name), g_strdup (value));
+    g_hash_table_insert (priv->env, g_strdup (name), g_strdup (value));
 }
 
 const gchar *
 process_get_env (Process *process, const gchar *name)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_val_if_fail (process != NULL, NULL);
     g_return_val_if_fail (name != NULL, NULL);
-    return g_hash_table_lookup (process->priv->env, name);
+    return g_hash_table_lookup (priv->env, name);
 }
 
 void
 process_set_command (Process *process, const gchar *command)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_if_fail (process != NULL);
-
-    g_free (process->priv->command);
-    process->priv->command = g_strdup (command);
+    g_free (priv->command);
+    priv->command = g_strdup (command);
 }
 
 const gchar *
 process_get_command (Process *process)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_val_if_fail (process != NULL, NULL);
-    return process->priv->command;
+    return priv->command;
 }
 
 static void
 process_watch_cb (GPid pid, gint status, gpointer data)
 {
     Process *process = data;
+    ProcessPrivate *priv = process_get_instance_private (process);
 
-    process->priv->watch = 0;
-    process->priv->exit_status = status;
+    priv->watch = 0;
+    priv->exit_status = status;
 
     if (WIFEXITED (status))
         g_debug ("Process %d exited with return value %d", pid, WEXITSTATUS (status));
     else if (WIFSIGNALED (status))
         g_debug ("Process %d terminated with signal %d", pid, WTERMSIG (status));
 
-    if (process->priv->quit_timeout)
-        g_source_remove (process->priv->quit_timeout);
-    process->priv->quit_timeout = 0;
-    process->priv->pid = 0;
+    if (priv->quit_timeout)
+        g_source_remove (priv->quit_timeout);
+    priv->quit_timeout = 0;
+    priv->pid = 0;
     g_hash_table_remove (processes, GINT_TO_POINTER (pid));
 
     g_signal_emit (process, signals[STOPPED], 0);
@@ -176,33 +188,35 @@ process_watch_cb (GPid pid, gint status, gpointer data)
 gboolean
 process_start (Process *process, gboolean block)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
+
     g_return_val_if_fail (process != NULL, FALSE);
-    g_return_val_if_fail (process->priv->command != NULL, FALSE);
-    g_return_val_if_fail (process->priv->pid == 0, FALSE);
+    g_return_val_if_fail (priv->command != NULL, FALSE);
+    g_return_val_if_fail (priv->pid == 0, FALSE);
 
     gint argc;
     g_auto(GStrv) argv = NULL;
     g_autoptr(GError) error = NULL;
-    if (!g_shell_parse_argv (process->priv->command, &argc, &argv, &error))
+    if (!g_shell_parse_argv (priv->command, &argc, &argv, &error))
     {
-        g_warning ("Error parsing command %s: %s", process->priv->command, error->message);
+        g_warning ("Error parsing command %s: %s", priv->command, error->message);
         return FALSE;
     }
 
     int log_fd = -1;
-    if (process->priv->log_file)
-        log_fd = log_file_open (process->priv->log_file, process->priv->log_mode);
+    if (priv->log_file)
+        log_fd = log_file_open (priv->log_file, priv->log_mode);
 
     /* Work out variables to set */
-    guint env_length = g_hash_table_size (process->priv->env);
+    guint env_length = g_hash_table_size (priv->env);
     g_autofree gchar **env_keys = g_malloc (sizeof (gchar *) * env_length);
     g_autofree gchar **env_values = g_malloc (sizeof (gchar *) * env_length);
-    GList *keys = g_hash_table_get_keys (process->priv->env);
+    GList *keys = g_hash_table_get_keys (priv->env);
     guint i = 0;
     for (GList *link = keys; i < env_length; i++, link = link->next)
     {
         env_keys[i] = link->data;
-        env_values[i] = g_hash_table_lookup (process->priv->env, env_keys[i]);
+        env_values[i] = g_hash_table_lookup (priv->env, env_keys[i]);
     }
     g_list_free (keys);
 
@@ -210,20 +224,20 @@ process_start (Process *process, gboolean block)
     if (pid == 0)
     {
         /* Do custom setup */
-        if (process->priv->run_func)
-            process->priv->run_func (process, process->priv->run_func_data);
+        if (priv->run_func)
+            priv->run_func (process, priv->run_func_data);
 
         /* Redirect output to logfile */
         if (log_fd >= 0)
         {
-             if (process->priv->log_stdout)
+             if (priv->log_stdout)
                  dup2 (log_fd, STDOUT_FILENO);
              dup2 (log_fd, STDERR_FILENO);
              close (log_fd);
         }
 
         /* Set environment */
-        if (process->priv->clear_environment)
+        if (priv->clear_environment)
 #ifdef HAVE_CLEARENV
             clearenv ();
 #else
@@ -247,20 +261,20 @@ process_start (Process *process, gboolean block)
         return FALSE;
     }
 
-    g_debug ("Launching process %d: %s", pid, process->priv->command);
+    g_debug ("Launching process %d: %s", pid, priv->command);
 
-    process->priv->pid = pid;
+    priv->pid = pid;
 
     if (block)
     {
         int exit_status;
-        waitpid (process->priv->pid, &exit_status, 0);
-        process_watch_cb (process->priv->pid, exit_status, process);
+        waitpid (priv->pid, &exit_status, 0);
+        process_watch_cb (priv->pid, exit_status, process);
     }
     else
     {
-        g_hash_table_insert (processes, GINT_TO_POINTER (process->priv->pid), g_object_ref (process));
-        process->priv->watch = g_child_watch_add (process->priv->pid, process_watch_cb, process);
+        g_hash_table_insert (processes, GINT_TO_POINTER (priv->pid), g_object_ref (process));
+        priv->watch = g_child_watch_add (priv->pid, process_watch_cb, process);
     }
 
     return TRUE;
@@ -269,73 +283,83 @@ process_start (Process *process, gboolean block)
 gboolean
 process_get_is_running (Process *process)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_val_if_fail (process != NULL, FALSE);
-    return process->priv->pid != 0;
+    return priv->pid != 0;
 }
 
 GPid
 process_get_pid (Process *process)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_val_if_fail (process != NULL, 0);
-    return process->priv->pid;
+    return priv->pid;
 }
 
 void
 process_signal (Process *process, int signum)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
+
     g_return_if_fail (process != NULL);
 
-    if (process->priv->pid == 0)
+    if (priv->pid == 0)
         return;
 
-    g_debug ("Sending signal %d to process %d", signum, process->priv->pid);
+    g_debug ("Sending signal %d to process %d", signum, priv->pid);
 
-    if (kill (process->priv->pid, signum) < 0)
+    if (kill (priv->pid, signum) < 0)
     {
         /* Ignore ESRCH, we will pick that up in our wait */
         if (errno != ESRCH)
-            g_warning ("Error sending signal %d to process %d: %s", signum, process->priv->pid, strerror (errno));
+            g_warning ("Error sending signal %d to process %d: %s", signum, priv->pid, strerror (errno));
     }
 }
 
 static gboolean
 quit_timeout_cb (Process *process)
 {
-    process->priv->quit_timeout = 0;
+    ProcessPrivate *priv = process_get_instance_private (process);
+
+    priv->quit_timeout = 0;
     process_signal (process, SIGKILL);
+
     return FALSE;
 }
 
 void
 process_stop (Process *process)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
+
     g_return_if_fail (process != NULL);
 
-    if (process->priv->stopping)
+    if (priv->stopping)
         return;
-    process->priv->stopping = TRUE;
+    priv->stopping = TRUE;
 
     /* If already stopped then we're done! */
-    if (process->priv->pid == 0)
+    if (priv->pid == 0)
         return;
 
     /* Send SIGTERM, and then SIGKILL if no response */
-    process->priv->quit_timeout = g_timeout_add (5000, (GSourceFunc) quit_timeout_cb, process);
+    priv->quit_timeout = g_timeout_add (5000, (GSourceFunc) quit_timeout_cb, process);
     process_signal (process, SIGTERM);
 }
 
 int
 process_get_exit_status (Process *process)
 {
+    ProcessPrivate *priv = process_get_instance_private (process);
     g_return_val_if_fail (process != NULL, -1);
-    return process->priv->exit_status;
+    return priv->exit_status;
 }
 
 static void
 process_init (Process *process)
 {
-    process->priv = G_TYPE_INSTANCE_GET_PRIVATE (process, PROCESS_TYPE, ProcessPrivate);
-    process->priv->env = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+    ProcessPrivate *priv = process_get_instance_private (process);
+    priv->env = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
 
 static void
@@ -347,20 +371,21 @@ static void
 process_finalize (GObject *object)
 {
     Process *self = PROCESS (object);
+    ProcessPrivate *priv = process_get_instance_private (self);
 
-    if (self->priv->pid > 0)
-        g_hash_table_remove (processes, GINT_TO_POINTER (self->priv->pid));
+    if (priv->pid > 0)
+        g_hash_table_remove (processes, GINT_TO_POINTER (priv->pid));
 
-    g_clear_pointer (&self->priv->log_file, g_free);
-    g_clear_pointer (&self->priv->command, g_free);
-    g_hash_table_unref (self->priv->env);
-    if (self->priv->quit_timeout)
-        g_source_remove (self->priv->quit_timeout);
-    if (self->priv->watch)
-        g_source_remove (self->priv->watch);
+    g_clear_pointer (&priv->log_file, g_free);
+    g_clear_pointer (&priv->command, g_free);
+    g_hash_table_unref (priv->env);
+    if (priv->quit_timeout)
+        g_source_remove (priv->quit_timeout);
+    if (priv->watch)
+        g_source_remove (priv->watch);
 
-    if (self->priv->pid)
-        kill (self->priv->pid, SIGTERM);
+    if (priv->pid)
+        kill (priv->pid, SIGTERM);
 
     G_OBJECT_CLASS (process_parent_class)->finalize (object);
 }

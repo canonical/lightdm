@@ -21,12 +21,9 @@ G_BEGIN_DECLS
 #define SESSION_CONFIG_CLASS(klass)   (G_TYPE_CHECK_CLASS_CAST ((klass), SESSION_CONFIG_TYPE, SessionConfigClass))
 #define SESSION_CONFIG_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), SESSION_CONFIG_TYPE, SessionConfigClass))
 
-typedef struct SessionConfigPrivate SessionConfigPrivate;
-
 typedef struct
 {
-    GObject               parent_instance;
-    SessionConfigPrivate *priv;
+    GObject parent_instance;
 } SessionConfig;
 
 typedef struct

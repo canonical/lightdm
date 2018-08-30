@@ -20,12 +20,9 @@ G_BEGIN_DECLS
 #define SEAT_UNITY_TYPE (seat_unity_get_type())
 #define SEAT_UNITY(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), SEAT_UNITY_TYPE, SeatUnity))
 
-typedef struct SeatUnityPrivate SeatUnityPrivate;
-
 typedef struct
 {
-    Seat              parent_instance;
-    SeatUnityPrivate *priv;
+    Seat parent_instance;
 } SeatUnity;
 
 typedef struct

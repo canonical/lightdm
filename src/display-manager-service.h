@@ -24,12 +24,9 @@ G_BEGIN_DECLS
 #define DISPLAY_MANAGER_SERVICE_SIGNAL_ADD_XLOCAL_SEAT "add-xlocal-seat"
 #define DISPLAY_MANAGER_SERVICE_SIGNAL_NAME_LOST       "name-lost"
 
-typedef struct DisplayManagerServicePrivate DisplayManagerServicePrivate;
-
 typedef struct
 {
-    GObject                       parent_instance;
-    DisplayManagerServicePrivate *priv;
+    GObject parent_instance;
 } DisplayManagerService;
 
 typedef struct

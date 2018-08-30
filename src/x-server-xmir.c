@@ -12,7 +12,7 @@
 
 #include "x-server-xmir.h"
 
-struct XServerXmirPrivate
+typedef struct
 {
     /* Compositor we are running under */
     UnitySystemCompositor *compositor;
@@ -25,16 +25,18 @@ struct XServerXmirPrivate
 
     /* Filename of socket Mir is listening on */
     gchar *mir_socket;
-};
+} XServerXmirPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XServerXmir, x_server_xmir, X_SERVER_LOCAL_TYPE)
 
 static void
 compositor_ready_cb (UnitySystemCompositor *compositor, XServerXmir *server)
 {
-    if (!server->priv->waiting_for_compositor)
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (server);
+
+    if (!priv->waiting_for_compositor)
         return;
-    server->priv->waiting_for_compositor = FALSE;
+    priv->waiting_for_compositor = FALSE;
 
     gboolean result = X_SERVER_LOCAL_CLASS (x_server_xmir_parent_class)->start (DISPLAY_SERVER (server));
     if (!result)
@@ -51,8 +53,10 @@ XServerXmir *
 x_server_xmir_new (UnitySystemCompositor *compositor)
 {
     XServerXmir *server = g_object_new (X_SERVER_XMIR_TYPE, NULL);
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (server);
+
     x_server_local_set_command (X_SERVER_LOCAL (server), "Xmir");
-    server->priv->compositor = g_object_ref (compositor);
+    priv->compositor = g_object_ref (compositor);
     g_signal_connect (compositor, DISPLAY_SERVER_SIGNAL_READY, G_CALLBACK (compositor_ready_cb), server);
     g_signal_connect (compositor, DISPLAY_SERVER_SIGNAL_STOPPED, G_CALLBACK (compositor_stopped_cb), server);
 
@@ -62,63 +66,70 @@ x_server_xmir_new (UnitySystemCompositor *compositor)
 void
 x_server_xmir_set_mir_id (XServerXmir *server, const gchar *id)
 {
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (server);
     g_return_if_fail (server != NULL);
-    g_free (server->priv->mir_id);
-    server->priv->mir_id = g_strdup (id);
+    g_free (priv->mir_id);
+    priv->mir_id = g_strdup (id);
 }
 
 const gchar *
 x_server_xmir_get_mir_id (XServerXmir *server)
 {
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (server);
     g_return_val_if_fail (server != NULL, NULL);
-    return server->priv->mir_id;
+    return priv->mir_id;
 }
 
 void
 x_server_xmir_set_mir_socket (XServerXmir *server, const gchar *socket)
 {
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (server);
     g_return_if_fail (server != NULL);
-    g_free (server->priv->mir_socket);
-    server->priv->mir_socket = g_strdup (socket);
+    g_free (priv->mir_socket);
+    priv->mir_socket = g_strdup (socket);
 }
 
 static void
 x_server_xmir_add_args (XServerLocal *x_server, GString *command)
 {
     XServerXmir *server = X_SERVER_XMIR (x_server);
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (server);
 
-    if (server->priv->mir_id)
-        g_string_append_printf (command, " -mir %s", server->priv->mir_id);
+    if (priv->mir_id)
+        g_string_append_printf (command, " -mir %s", priv->mir_id);
 
-    if (server->priv->mir_socket)
-        g_string_append_printf (command, " -mirSocket %s", server->priv->mir_socket);
+    if (priv->mir_socket)
+        g_string_append_printf (command, " -mirSocket %s", priv->mir_socket);
 }
 
 static DisplayServer *
 x_server_xmir_get_parent (DisplayServer *server)
 {
-    return DISPLAY_SERVER (X_SERVER_XMIR (server)->priv->compositor);
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (X_SERVER_XMIR (server));
+    return DISPLAY_SERVER (priv->compositor);
 }
 
 static gint
 x_server_xmir_get_vt (DisplayServer *server)
 {
-    return display_server_get_vt (DISPLAY_SERVER (X_SERVER_XMIR (server)->priv->compositor));
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (X_SERVER_XMIR (server));
+    return display_server_get_vt (DISPLAY_SERVER (priv->compositor));
 }
 
 static gboolean
 x_server_xmir_start (DisplayServer *display_server)
 {
     XServerXmir *server = X_SERVER_XMIR (display_server);
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (server);
 
-    if (display_server_get_is_ready (DISPLAY_SERVER (server->priv->compositor)))
+    if (display_server_get_is_ready (DISPLAY_SERVER (priv->compositor)))
         return X_SERVER_LOCAL_CLASS (x_server_xmir_parent_class)->start (display_server);
     else
     {
-        if (!server->priv->waiting_for_compositor)
+        if (!priv->waiting_for_compositor)
         {
-            server->priv->waiting_for_compositor = TRUE;
-            if (!display_server_start (DISPLAY_SERVER (server->priv->compositor)))
+            priv->waiting_for_compositor = TRUE;
+            if (!display_server_start (DISPLAY_SERVER (priv->compositor)))
                 return FALSE;
         }
         return TRUE;
@@ -128,19 +139,19 @@ x_server_xmir_start (DisplayServer *display_server)
 static void
 x_server_xmir_init (XServerXmir *server)
 {
-    server->priv = G_TYPE_INSTANCE_GET_PRIVATE (server, X_SERVER_XMIR_TYPE, XServerXmirPrivate);
 }
 
 static void
 x_server_xmir_finalize (GObject *object)
 {
     XServerXmir *self = X_SERVER_XMIR (object);
+    XServerXmirPrivate *priv = x_server_xmir_get_instance_private (self);
 
-    if (self->priv->compositor)
-        g_signal_handlers_disconnect_matched (self->priv->compositor, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
-    g_clear_object (&self->priv->compositor);
-    g_clear_pointer (&self->priv->mir_id, g_free);
-    g_clear_pointer (&self->priv->mir_socket, g_free);
+    if (priv->compositor)
+        g_signal_handlers_disconnect_matched (priv->compositor, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+    g_clear_object (&priv->compositor);
+    g_clear_pointer (&priv->mir_id, g_free);
+    g_clear_pointer (&priv->mir_socket, g_free);
 
     G_OBJECT_CLASS (x_server_xmir_parent_class)->finalize (object);
 }

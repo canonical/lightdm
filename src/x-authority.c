@@ -19,7 +19,7 @@
 
 #include "x-authority.h"
 
-struct XAuthorityPrivate
+typedef struct
 {
     /* Protocol family */
     guint16 family;
@@ -37,7 +37,7 @@ struct XAuthorityPrivate
     /* Authorization data */
     guint8 *authorization_data;
     gsize authorization_data_length;
-};
+} XAuthorityPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (XAuthority, x_authority, G_TYPE_OBJECT)
 
@@ -76,103 +76,117 @@ x_authority_new_local_cookie (const gchar *number)
 void
 x_authority_set_family (XAuthority *auth, guint16 family)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_if_fail (auth != NULL);
-    auth->priv->family = family;
+    priv->family = family;
 }
 
 guint16
 x_authority_get_family (XAuthority *auth)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_val_if_fail (auth != NULL, 0);
-    return auth->priv->family;
+    return priv->family;
 }
 
 void
 x_authority_set_address (XAuthority *auth, const guint8 *address, gsize address_length)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_if_fail (auth != NULL);
-    g_free (auth->priv->address);
-    auth->priv->address = g_malloc (address_length);
-    memcpy (auth->priv->address, address, address_length);
-    auth->priv->address_length = address_length;
+    g_free (priv->address);
+    priv->address = g_malloc (address_length);
+    memcpy (priv->address, address, address_length);
+    priv->address_length = address_length;
 }
 
 const guint8 *
 x_authority_get_address (XAuthority *auth)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_val_if_fail (auth != NULL, NULL);
-    return auth->priv->address;
+    return priv->address;
 }
 
 gsize
 x_authority_get_address_length (XAuthority *auth)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_val_if_fail (auth != NULL, 0);
-    return auth->priv->address_length;
+    return priv->address_length;
 }
 
 void
 x_authority_set_number (XAuthority *auth, const gchar *number)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_if_fail (auth != NULL);
-    g_free (auth->priv->number);
-    auth->priv->number = g_strdup (number);
+    g_free (priv->number);
+    priv->number = g_strdup (number);
 }
 
 const gchar *
 x_authority_get_number (XAuthority *auth)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_val_if_fail (auth != NULL, NULL);
-    return auth->priv->number;
+    return priv->number;
 }
 
 void
 x_authority_set_authorization_name (XAuthority *auth, const gchar *name)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_if_fail (auth != NULL);
-    g_free (auth->priv->authorization_name);
-    auth->priv->authorization_name = g_strdup (name);
+    g_free (priv->authorization_name);
+    priv->authorization_name = g_strdup (name);
 }
 
 const gchar *
 x_authority_get_authorization_name (XAuthority *auth)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_val_if_fail (auth != NULL, NULL);
-    return auth->priv->authorization_name;
+    return priv->authorization_name;
 }
 
 void
 x_authority_set_authorization_data (XAuthority *auth, const guint8 *data, gsize data_length)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_if_fail (auth != NULL);
-    g_free (auth->priv->authorization_data);
-    auth->priv->authorization_data = g_malloc (data_length);
-    memcpy (auth->priv->authorization_data, data, data_length);
-    auth->priv->authorization_data_length = data_length;
+    g_free (priv->authorization_data);
+    priv->authorization_data = g_malloc (data_length);
+    memcpy (priv->authorization_data, data, data_length);
+    priv->authorization_data_length = data_length;
 }
 
 const guint8 *
 x_authority_get_authorization_data (XAuthority *auth)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_val_if_fail (auth != NULL, NULL);
-    return auth->priv->authorization_data;
+    return priv->authorization_data;
 }
 
 guint8 *
 x_authority_copy_authorization_data (XAuthority *auth)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
+
     g_return_val_if_fail (auth != NULL, NULL);
 
-    guint8 *data = g_malloc (auth->priv->authorization_data_length);
-    memcpy (data, auth->priv->authorization_data, auth->priv->authorization_data_length);
+    guint8 *data = g_malloc (priv->authorization_data_length);
+    memcpy (data, priv->authorization_data, priv->authorization_data_length);
     return data;
 }
 
 gsize
 x_authority_get_authorization_data_length (XAuthority *auth)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
     g_return_val_if_fail (auth != NULL, 0);
-    return auth->priv->authorization_data_length;
+    return priv->authorization_data_length;
 }
 
 static gboolean
@@ -239,6 +253,8 @@ write_string (int fd, const gchar *value)
 gboolean
 x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename, GError **error)
 {
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
+
     g_return_val_if_fail (auth != NULL, FALSE);
     g_return_val_if_fail (filename != NULL, FALSE);
 
@@ -257,41 +273,42 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
     while (input_offset != input_length)
     {
         g_autoptr(XAuthority) a = g_object_new (X_AUTHORITY_TYPE, NULL);
+        XAuthorityPrivate *a_priv = x_authority_get_instance_private (a);
 
         guint16 address_length = 0;
         guint16 authorization_data_length = 0;
-        gboolean result = read_uint16 (input, input_length, &input_offset, &a->priv->family) &&
+        gboolean result = read_uint16 (input, input_length, &input_offset, &a_priv->family) &&
                           read_uint16 (input, input_length, &input_offset, &address_length) &&
-                          read_data (input, input_length, &input_offset, address_length, &a->priv->address) &&
-                          read_string (input, input_length, &input_offset, &a->priv->number) &&
-                          read_string (input, input_length, &input_offset, &a->priv->authorization_name) &&
+                          read_data (input, input_length, &input_offset, address_length, &a_priv->address) &&
+                          read_string (input, input_length, &input_offset, &a_priv->number) &&
+                          read_string (input, input_length, &input_offset, &a_priv->authorization_name) &&
                           read_uint16 (input, input_length, &input_offset, &authorization_data_length) &&
-                          read_data (input, input_length, &input_offset, authorization_data_length, &a->priv->authorization_data);
-        a->priv->address_length = address_length;
-        a->priv->authorization_data_length = authorization_data_length;
+                          read_data (input, input_length, &input_offset, authorization_data_length, &a_priv->authorization_data);
+        a_priv->address_length = address_length;
+        a_priv->authorization_data_length = authorization_data_length;
 
         if (!result)
             break;
 
         gboolean address_matches = FALSE;
-        if (auth->priv->address_length == a->priv->address_length)
+        if (priv->address_length == a_priv->address_length)
         {
             guint16 i;
-            for (i = 0; i < auth->priv->address_length && auth->priv->address[i] == a->priv->address[i]; i++);
-            address_matches = i == auth->priv->address_length;
+            for (i = 0; i < priv->address_length && priv->address[i] == a_priv->address[i]; i++);
+            address_matches = i == priv->address_length;
         }
 
         /* If this record matches, then update or delete it */
         if (!matched &&
-            auth->priv->family == a->priv->family &&
+            priv->family == a_priv->family &&
             address_matches &&
-            strcmp (auth->priv->number, a->priv->number) == 0)
+            strcmp (priv->number, a_priv->number) == 0)
         {
             matched = TRUE;
             if (mode == XAUTH_WRITE_MODE_REMOVE)
                 continue;
             else
-                x_authority_set_authorization_data (a, auth->priv->authorization_data, auth->priv->authorization_data_length);
+                x_authority_set_authorization_data (a, priv->authorization_data, priv->authorization_data_length);
         }
 
         records = g_list_append (records, g_steal_pointer (&a));
@@ -320,14 +337,15 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
     for (GList *link = records; link && result; link = link->next)
     {
         XAuthority *a = link->data;
+        XAuthorityPrivate *a_priv = x_authority_get_instance_private (a);
 
-        result = write_uint16 (output_fd, a->priv->family) &&
-                 write_uint16 (output_fd, a->priv->address_length) &&
-                 write_data (output_fd, a->priv->address, a->priv->address_length) &&
-                 write_string (output_fd, a->priv->number) &&
-                 write_string (output_fd, a->priv->authorization_name) &&
-                 write_uint16 (output_fd, a->priv->authorization_data_length) &&
-                 write_data (output_fd, a->priv->authorization_data, a->priv->authorization_data_length);
+        result = write_uint16 (output_fd, a_priv->family) &&
+                 write_uint16 (output_fd, a_priv->address_length) &&
+                 write_data (output_fd, a_priv->address, a_priv->address_length) &&
+                 write_string (output_fd, a_priv->number) &&
+                 write_string (output_fd, a_priv->authorization_name) &&
+                 write_uint16 (output_fd, a_priv->authorization_data_length) &&
+                 write_data (output_fd, a_priv->authorization_data, a_priv->authorization_data_length);
     }
     g_list_free_full (records, g_object_unref);
 
@@ -351,19 +369,20 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
 static void
 x_authority_init (XAuthority *auth)
 {
-    auth->priv = G_TYPE_INSTANCE_GET_PRIVATE (auth, X_AUTHORITY_TYPE, XAuthorityPrivate);
-    auth->priv->number = g_strdup ("");
+    XAuthorityPrivate *priv = x_authority_get_instance_private (auth);
+    priv->number = g_strdup ("");
 }
 
 static void
 x_authority_finalize (GObject *object)
 {
     XAuthority *self = X_AUTHORITY (object);
+    XAuthorityPrivate *priv = x_authority_get_instance_private (self);
 
-    g_clear_pointer (&self->priv->address, g_free);
-    g_clear_pointer (&self->priv->number, g_free);
-    g_clear_pointer (&self->priv->authorization_name, g_free);
-    g_clear_pointer (&self->priv->authorization_data, g_free);
+    g_clear_pointer (&priv->address, g_free);
+    g_clear_pointer (&priv->number, g_free);
+    g_clear_pointer (&priv->authorization_name, g_free);
+    g_clear_pointer (&priv->authorization_data, g_free);
 
     G_OBJECT_CLASS (x_authority_parent_class)->finalize (object);
 }

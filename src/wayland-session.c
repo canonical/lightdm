@@ -12,12 +12,12 @@
 #include "wayland-session.h"
 #include "vt.h"
 
-struct WaylandSessionPrivate
+typedef struct
 {
     /* VT to run on */
     gint vt;
     gboolean have_vt_ref;
-};
+} WaylandSessionPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (WaylandSession, wayland_session, DISPLAY_SERVER_TYPE)
 
@@ -30,36 +30,40 @@ wayland_session_new (void)
 void
 wayland_session_set_vt (WaylandSession *session, gint vt)
 {
+    WaylandSessionPrivate *priv = wayland_session_get_instance_private (session);
+
     g_return_if_fail (session != NULL);
 
-    if (session->priv->have_vt_ref)
-        vt_unref (session->priv->vt);
-    session->priv->have_vt_ref = FALSE;
-    session->priv->vt = vt;
+    if (priv->have_vt_ref)
+        vt_unref (priv->vt);
+    priv->have_vt_ref = FALSE;
+    priv->vt = vt;
     if (vt > 0)
     {
         vt_ref (vt);
-        session->priv->have_vt_ref = TRUE;
+        priv->have_vt_ref = TRUE;
     }
 }
 
 static gint
 wayland_session_get_vt (DisplayServer *server)
 {
+    WaylandSessionPrivate *priv = wayland_session_get_instance_private (WAYLAND_SESSION (server));
     g_return_val_if_fail (server != NULL, 0);
-    return WAYLAND_SESSION (server)->priv->vt;
+    return priv->vt;
 }
 
 static void
 wayland_session_connect_session (DisplayServer *display_server, Session *session)
 {
     WaylandSession *wayland_session = WAYLAND_SESSION (display_server);
+    WaylandSessionPrivate *priv = wayland_session_get_instance_private (wayland_session);
 
     session_set_env (session, "XDG_SESSION_TYPE", "wayland");
 
-    if (wayland_session->priv->vt >= 0)
+    if (priv->vt >= 0)
     {
-        g_autofree gchar *value = g_strdup_printf ("%d", wayland_session->priv->vt);
+        g_autofree gchar *value = g_strdup_printf ("%d", priv->vt);
         session_set_env (session, "XDG_VTNR", value);
     }
 }
@@ -74,16 +78,16 @@ wayland_session_disconnect_session (DisplayServer *display_server, Session *sess
 static void
 wayland_session_init (WaylandSession *session)
 {
-    session->priv = G_TYPE_INSTANCE_GET_PRIVATE (session, WAYLAND_SESSION_TYPE, WaylandSessionPrivate);
 }
 
 static void
 wayland_session_finalize (GObject *object)
 {
     WaylandSession *self = WAYLAND_SESSION (object);
+    WaylandSessionPrivate *priv = wayland_session_get_instance_private (self);
 
-    if (self->priv->have_vt_ref)
-        vt_unref (self->priv->vt);
+    if (priv->have_vt_ref)
+        vt_unref (priv->vt);
 
     G_OBJECT_CLASS (wayland_session_parent_class)->finalize (object);
 }

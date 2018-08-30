@@ -20,7 +20,7 @@ enum {
 };
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct DisplayManagerServicePrivate
+typedef struct
 {
     /* Display manager being exposed on D-Bus */
     DisplayManager *manager;
@@ -45,7 +45,7 @@ struct DisplayManagerServicePrivate
     /* Bus entries for seats / session */
     GHashTable *seat_bus_entries;
     GHashTable *session_bus_entries;
-};
+} DisplayManagerServicePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (DisplayManagerService, display_manager_service, G_TYPE_OBJECT)
 
@@ -71,7 +71,9 @@ DisplayManagerService *
 display_manager_service_new (DisplayManager *manager)
 {
     DisplayManagerService *service = g_object_new (DISPLAY_MANAGER_SERVICE_TYPE, NULL);
-    service->priv->manager = g_object_ref (manager);
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
+    priv->manager = g_object_ref (manager);
 
     return service;
 }
@@ -153,11 +155,13 @@ session_bus_entry_free (gpointer data)
 static GVariant *
 get_seat_list (DisplayManagerService *service)
 {
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
     GVariantBuilder builder;
     g_variant_builder_init (&builder, G_VARIANT_TYPE ("ao"));
 
     GHashTableIter iter;
-    g_hash_table_iter_init (&iter, service->priv->seat_bus_entries);
+    g_hash_table_iter_init (&iter, priv->seat_bus_entries);
     gpointer value;
     while (g_hash_table_iter_next (&iter, NULL, &value))
     {
@@ -171,11 +175,13 @@ get_seat_list (DisplayManagerService *service)
 static GVariant *
 get_session_list (DisplayManagerService *service, const gchar *seat_path)
 {
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
     GVariantBuilder builder;
     g_variant_builder_init (&builder, G_VARIANT_TYPE ("ao"));
 
     GHashTableIter iter;
-    g_hash_table_iter_init (&iter, service->priv->session_bus_entries);
+    g_hash_table_iter_init (&iter, priv->session_bus_entries);
     gpointer value;
     while (g_hash_table_iter_next (&iter, NULL, &value))
     {
@@ -217,6 +223,7 @@ handle_display_manager_call (GDBusConnection       *connection,
                              gpointer               user_data)
 {
     DisplayManagerService *service = user_data;
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
 
     if (g_strcmp0 (method_name, "AddSeat") == 0)
         g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "AddSeat is deprecated");
@@ -239,7 +246,7 @@ handle_display_manager_call (GDBusConnection       *connection,
             g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_FAILED, "Unable to create local X seat");
             return;
         }
-        SeatBusEntry *entry = g_hash_table_lookup (service->priv->seat_bus_entries, seat);
+        SeatBusEntry *entry = g_hash_table_lookup (priv->seat_bus_entries, seat);
         g_dbus_method_invocation_return_value (invocation, g_variant_new ("(o)", entry->path));
     }
     else
@@ -337,7 +344,9 @@ handle_seat_call (GDBusConnection       *connection,
 static Seat *
 get_seat_for_session (DisplayManagerService *service, Session *session)
 {
-    for (GList *seat_link = display_manager_get_seats (service->priv->manager); seat_link; seat_link = seat_link->next)
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
+    for (GList *seat_link = display_manager_get_seats (priv->manager); seat_link; seat_link = seat_link->next)
     {
         Seat *seat = seat_link->data;
 
@@ -401,16 +410,18 @@ handle_session_call (GDBusConnection       *connection,
 static void
 running_user_session_cb (Seat *seat, Session *session, DisplayManagerService *service)
 {
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
     /* Set environment variables when session runs */
-    SeatBusEntry *seat_entry = g_hash_table_lookup (service->priv->seat_bus_entries, seat);
+    SeatBusEntry *seat_entry = g_hash_table_lookup (priv->seat_bus_entries, seat);
     session_set_env (session, "XDG_SEAT_PATH", seat_entry->path);
-    g_autofree gchar *path = g_strdup_printf ("/org/freedesktop/DisplayManager/Session%d", service->priv->session_index);
-    service->priv->session_index++;
+    g_autofree gchar *path = g_strdup_printf ("/org/freedesktop/DisplayManager/Session%d", priv->session_index);
+    priv->session_index++;
     session_set_env (session, "XDG_SESSION_PATH", path);
     g_object_set_data_full (G_OBJECT (session), "XDG_SESSION_PATH", g_steal_pointer (&path), g_free);
 
     SessionBusEntry *session_entry = session_bus_entry_new (service, session, g_object_get_data (G_OBJECT (session), "XDG_SESSION_PATH"), seat_entry ? seat_entry->path : NULL);
-    g_hash_table_insert (service->priv->session_bus_entries, g_object_ref (session), session_entry);
+    g_hash_table_insert (priv->session_bus_entries, g_object_ref (session), session_entry);
 
     g_debug ("Registering session with bus path %s", session_entry->path);
 
@@ -420,54 +431,58 @@ running_user_session_cb (Seat *seat, Session *session, DisplayManagerService *se
         handle_session_get_property
     };
     g_autoptr(GError) error = NULL;
-    session_entry->bus_id = g_dbus_connection_register_object (service->priv->bus,
+    session_entry->bus_id = g_dbus_connection_register_object (priv->bus,
                                                                session_entry->path,
-                                                               service->priv->session_info->interfaces[0],
+                                                               priv->session_info->interfaces[0],
                                                                &session_vtable,
                                                                session_entry, NULL,
                                                                &error);
     if (session_entry->bus_id == 0)
         g_warning ("Failed to register user session: %s", error->message);
 
-    emit_object_value_changed (service->priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (service, NULL));
-    emit_object_signal (service->priv->bus, "/org/freedesktop/DisplayManager", "SessionAdded", session_entry->path);
+    emit_object_value_changed (priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (service, NULL));
+    emit_object_signal (priv->bus, "/org/freedesktop/DisplayManager", "SessionAdded", session_entry->path);
 
-    emit_object_value_changed (service->priv->bus, seat_entry->path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (service, session_entry->seat_path));
-    emit_object_signal (service->priv->bus, seat_entry->path, "SessionAdded", session_entry->path);
+    emit_object_value_changed (priv->bus, seat_entry->path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (service, session_entry->seat_path));
+    emit_object_signal (priv->bus, seat_entry->path, "SessionAdded", session_entry->path);
 }
 
 static void
 session_removed_cb (Seat *seat, Session *session, DisplayManagerService *service)
 {
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
     g_signal_handlers_disconnect_matched (session, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
 
-    SessionBusEntry *entry = g_hash_table_lookup (service->priv->session_bus_entries, session);
+    SessionBusEntry *entry = g_hash_table_lookup (priv->session_bus_entries, session);
     g_autofree gchar *seat_path = NULL;
     if (entry)
     {
-        g_dbus_connection_unregister_object (service->priv->bus, entry->bus_id);
-        emit_object_signal (service->priv->bus, "/org/freedesktop/DisplayManager", "SessionRemoved", entry->path);
-        emit_object_signal (service->priv->bus, entry->seat_path, "SessionRemoved", entry->path);
+        g_dbus_connection_unregister_object (priv->bus, entry->bus_id);
+        emit_object_signal (priv->bus, "/org/freedesktop/DisplayManager", "SessionRemoved", entry->path);
+        emit_object_signal (priv->bus, entry->seat_path, "SessionRemoved", entry->path);
         seat_path = g_strdup (entry->seat_path);
     }
 
-    g_hash_table_remove (service->priv->session_bus_entries, session);
+    g_hash_table_remove (priv->session_bus_entries, session);
 
     if (seat_path)
     {
-        emit_object_value_changed (service->priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (service, NULL));
-        emit_object_value_changed (service->priv->bus, seat_path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (service, seat_path));
+        emit_object_value_changed (priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Sessions", get_session_list (service, NULL));
+        emit_object_value_changed (priv->bus, seat_path, "org.freedesktop.DisplayManager.Seat", "Sessions", get_session_list (service, seat_path));
     }
 }
 
 static void
 seat_added_cb (DisplayManager *display_manager, Seat *seat, DisplayManagerService *service)
 {
-    g_autofree gchar *path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", service->priv->seat_index);
-    service->priv->seat_index++;
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
+    g_autofree gchar *path = g_strdup_printf ("/org/freedesktop/DisplayManager/Seat%d", priv->seat_index);
+    priv->seat_index++;
 
     SeatBusEntry *entry = seat_bus_entry_new (service, seat, path);
-    g_hash_table_insert (service->priv->seat_bus_entries, g_object_ref (seat), entry);
+    g_hash_table_insert (priv->seat_bus_entries, g_object_ref (seat), entry);
 
     g_debug ("Registering seat with bus path %s", entry->path);
 
@@ -477,17 +492,17 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat, DisplayManagerServic
         handle_seat_get_property
     };
     g_autoptr(GError) error = NULL;
-    entry->bus_id = g_dbus_connection_register_object (service->priv->bus,
+    entry->bus_id = g_dbus_connection_register_object (priv->bus,
                                                        entry->path,
-                                                       service->priv->seat_info->interfaces[0],
+                                                       priv->seat_info->interfaces[0],
                                                        &seat_vtable,
                                                        entry, NULL,
                                                        &error);
     if (entry->bus_id == 0)
         g_warning ("Failed to register seat: %s", error->message);
 
-    emit_object_value_changed (service->priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list (service));
-    emit_object_signal (service->priv->bus, "/org/freedesktop/DisplayManager", "SeatAdded", entry->path);
+    emit_object_value_changed (priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list (service));
+    emit_object_signal (priv->bus, "/org/freedesktop/DisplayManager", "SeatAdded", entry->path);
 
     g_signal_connect (seat, SEAT_SIGNAL_RUNNING_USER_SESSION, G_CALLBACK (running_user_session_cb), service);
     g_signal_connect (seat, SEAT_SIGNAL_SESSION_REMOVED, G_CALLBACK (session_removed_cb), service);
@@ -496,16 +511,18 @@ seat_added_cb (DisplayManager *display_manager, Seat *seat, DisplayManagerServic
 static void
 seat_removed_cb (DisplayManager *display_manager, Seat *seat, DisplayManagerService *service)
 {
-    SeatBusEntry *entry = g_hash_table_lookup (service->priv->seat_bus_entries, seat);
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
+    SeatBusEntry *entry = g_hash_table_lookup (priv->seat_bus_entries, seat);
     if (entry)
     {
-        g_dbus_connection_unregister_object (service->priv->bus, entry->bus_id);
-        emit_object_signal (service->priv->bus, "/org/freedesktop/DisplayManager", "SeatRemoved", entry->path);
+        g_dbus_connection_unregister_object (priv->bus, entry->bus_id);
+        emit_object_signal (priv->bus, "/org/freedesktop/DisplayManager", "SeatRemoved", entry->path);
     }
 
-    g_hash_table_remove (service->priv->seat_bus_entries, seat);
+    g_hash_table_remove (priv->seat_bus_entries, seat);
 
-    emit_object_value_changed (service->priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list (service));
+    emit_object_value_changed (priv->bus, "/org/freedesktop/DisplayManager", "org.freedesktop.DisplayManager", "Seats", get_seat_list (service));
 }
 
 static void
@@ -514,10 +531,11 @@ bus_acquired_cb (GDBusConnection *connection,
                  gpointer         user_data)
 {
     DisplayManagerService *service = user_data;
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
 
     g_debug ("Acquired bus name %s", name);
 
-    service->priv->bus = g_object_ref (connection);
+    priv->bus = g_object_ref (connection);
 
     const gchar *display_manager_interface =
         "<node>"
@@ -573,8 +591,8 @@ bus_acquired_cb (GDBusConnection *connection,
         "    </signal>"
         "  </interface>"
         "</node>";
-    service->priv->seat_info = g_dbus_node_info_new_for_xml (seat_interface, NULL);
-    g_assert (service->priv->seat_info != NULL);
+    priv->seat_info = g_dbus_node_info_new_for_xml (seat_interface, NULL);
+    g_assert (priv->seat_info != NULL);
 
     const gchar *session_interface =
         "<node>"
@@ -584,8 +602,8 @@ bus_acquired_cb (GDBusConnection *connection,
         "    <method name='Lock'/>"
         "  </interface>"
         "</node>";
-    service->priv->session_info = g_dbus_node_info_new_for_xml (session_interface, NULL);
-    g_assert (service->priv->session_info != NULL);
+    priv->session_info = g_dbus_node_info_new_for_xml (session_interface, NULL);
+    g_assert (priv->session_info != NULL);
 
     static const GDBusInterfaceVTable display_manager_vtable =
     {
@@ -593,21 +611,21 @@ bus_acquired_cb (GDBusConnection *connection,
         handle_display_manager_get_property
     };
     g_autoptr(GError) error = NULL;
-    service->priv->reg_id = g_dbus_connection_register_object (connection,
-                                                               "/org/freedesktop/DisplayManager",
-                                                               display_manager_info->interfaces[0],
-                                                               &display_manager_vtable,
-                                                               service, NULL,
-                                                               &error);
-    if (service->priv->reg_id == 0)
+    priv->reg_id = g_dbus_connection_register_object (connection,
+                                                      "/org/freedesktop/DisplayManager",
+                                                      display_manager_info->interfaces[0],
+                                                      &display_manager_vtable,
+                                                      service, NULL,
+                                                      &error);
+    if (priv->reg_id == 0)
         g_warning ("Failed to register display manager: %s", error->message);
     g_dbus_node_info_unref (display_manager_info);
 
     /* Add objects for existing seats and listen to new ones */
-    g_signal_connect (service->priv->manager, DISPLAY_MANAGER_SIGNAL_SEAT_ADDED, G_CALLBACK (seat_added_cb), service);
-    g_signal_connect (service->priv->manager, DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED, G_CALLBACK (seat_removed_cb), service);
-    for (GList *link = display_manager_get_seats (service->priv->manager); link; link = link->next)
-        seat_added_cb (service->priv->manager, (Seat *) link->data, service);
+    g_signal_connect (priv->manager, DISPLAY_MANAGER_SIGNAL_SEAT_ADDED, G_CALLBACK (seat_added_cb), service);
+    g_signal_connect (priv->manager, DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED, G_CALLBACK (seat_removed_cb), service);
+    for (GList *link = display_manager_get_seats (priv->manager); link; link = link->next)
+        seat_added_cb (priv->manager, (Seat *) link->data, service);
 
     g_signal_emit (service, signals[READY], 0);
 }
@@ -630,42 +648,45 @@ name_lost_cb (GDBusConnection *connection,
 void
 display_manager_service_start (DisplayManagerService *service)
 {
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+
     g_return_if_fail (service != NULL);
 
     g_debug ("Using D-Bus name %s", LIGHTDM_BUS_NAME);
-    service->priv->bus_id = g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
-                                            LIGHTDM_BUS_NAME,
-                                            G_BUS_NAME_OWNER_FLAGS_NONE,
-                                            bus_acquired_cb,
-                                            NULL,
-                                            name_lost_cb,
-                                            service,
-                                            NULL);
+    priv->bus_id = g_bus_own_name (getuid () == 0 ? G_BUS_TYPE_SYSTEM : G_BUS_TYPE_SESSION,
+                                   LIGHTDM_BUS_NAME,
+                                   G_BUS_NAME_OWNER_FLAGS_NONE,
+                                   bus_acquired_cb,
+                                   NULL,
+                                   name_lost_cb,
+                                   service,
+                                   NULL);
 }
 
 static void
 display_manager_service_init (DisplayManagerService *service)
 {
-    service->priv = G_TYPE_INSTANCE_GET_PRIVATE (service, DISPLAY_MANAGER_SERVICE_TYPE, DisplayManagerServicePrivate);
-    service->priv->seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, seat_bus_entry_free);
-    service->priv->session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, session_bus_entry_free);
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
+    priv->seat_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, seat_bus_entry_free);
+    priv->session_bus_entries = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, session_bus_entry_free);
 }
 
 static void
 display_manager_service_finalize (GObject *object)
 {
     DisplayManagerService *self = DISPLAY_MANAGER_SERVICE (object);
+    DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (self);
 
-    g_dbus_connection_unregister_object (self->priv->bus, self->priv->reg_id);
-    g_bus_unown_name (self->priv->bus_id);
-    if (self->priv->seat_info)
-        g_dbus_node_info_unref (self->priv->seat_info);
-    if (self->priv->session_info)
-        g_dbus_node_info_unref (self->priv->session_info);
-    g_hash_table_unref (self->priv->seat_bus_entries);
-    g_hash_table_unref (self->priv->session_bus_entries);
-    g_object_unref (self->priv->bus);
-    g_clear_object (&self->priv->manager);
+    g_dbus_connection_unregister_object (priv->bus, priv->reg_id);
+    g_bus_unown_name (priv->bus_id);
+    if (priv->seat_info)
+        g_dbus_node_info_unref (priv->seat_info);
+    if (priv->session_info)
+        g_dbus_node_info_unref (priv->session_info);
+    g_hash_table_unref (priv->seat_bus_entries);
+    g_hash_table_unref (priv->session_bus_entries);
+    g_object_unref (priv->bus);
+    g_clear_object (&priv->manager);
 
     G_OBJECT_CLASS (display_manager_service_parent_class)->finalize (object);
 }

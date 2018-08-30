@@ -20,12 +20,9 @@ G_BEGIN_DECLS
 #define X_SERVER_XMIR(obj)    (G_TYPE_CHECK_INSTANCE_CAST ((obj), X_SERVER_XMIR_TYPE, XServerXmir))
 #define IS_X_SERVER_XMIR(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), X_SERVER_XMIR_TYPE))
 
-typedef struct XServerXmirPrivate XServerXmirPrivate;
-
 typedef struct
 {
-    XServerLocal        parent_instance;
-    XServerXmirPrivate *priv;
+    XServerLocal parent_instance;
 } XServerXmir;
 
 typedef struct

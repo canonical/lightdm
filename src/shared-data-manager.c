@@ -21,12 +21,12 @@
 
 #define NUM_ENUMERATION_FILES 100
 
-struct SharedDataManagerPrivate
+typedef struct
 {
     gchar *greeter_user;
     guint32 greeter_gid;
     GHashTable *starting_dirs;
-};
+} SharedDataManagerPrivate;
 
 struct OwnerInfo
 {
@@ -74,6 +74,8 @@ delete_unused_user (gpointer key, gpointer value, gpointer user_data)
 gchar *
 shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *user)
 {
+    SharedDataManagerPrivate *priv = shared_data_manager_get_instance_private (manager);
+
     struct passwd *entry = getpwnam (user);
     if (!entry)
         return NULL;
@@ -106,7 +108,7 @@ shared_data_manager_ensure_user_dir (SharedDataManager *manager, const gchar *us
        runs. */
     g_autoptr(GFileInfo) info = g_file_info_new ();
     g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_UID, entry->pw_uid);
-    g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_GID, manager->priv->greeter_gid);
+    g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_GID, priv->greeter_gid);
     g_file_info_set_attribute_uint32 (info, G_FILE_ATTRIBUTE_UNIX_MODE, 0770);
     result = g_file_set_attributes_from_info (file, info, G_FILE_QUERY_INFO_NONE, NULL, &error);
     if (error)
@@ -122,6 +124,7 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
 {
     GFileEnumerator *enumerator = G_FILE_ENUMERATOR (object);
     SharedDataManager *manager = SHARED_DATA_MANAGER (user_data);
+    SharedDataManagerPrivate *priv = shared_data_manager_get_instance_private (manager);
 
     g_autoptr(GError) error = NULL;
     GList *files = g_file_enumerator_next_files_finish (enumerator, res, &error);
@@ -135,7 +138,7 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     for (GList *link = files; link; link = link->next)
     {
         GFileInfo *info = link->data;
-        g_hash_table_insert (manager->priv->starting_dirs, g_strdup (g_file_info_get_name (info)), NULL);
+        g_hash_table_insert (priv->starting_dirs, g_strdup (g_file_info_get_name (info)), NULL);
     }
 
     if (files != NULL)
@@ -152,11 +155,11 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
         for (GList *link = users; link; link = link->next)
         {
             CommonUser *user = link->data;
-            g_hash_table_remove (manager->priv->starting_dirs, common_user_get_name (user));
+            g_hash_table_remove (priv->starting_dirs, common_user_get_name (user));
         }
-        g_hash_table_foreach (manager->priv->starting_dirs, delete_unused_user, manager);
-        g_hash_table_destroy (manager->priv->starting_dirs);
-        manager->priv->starting_dirs = NULL;
+        g_hash_table_foreach (priv->starting_dirs, delete_unused_user, manager);
+        g_hash_table_destroy (priv->starting_dirs);
+        priv->starting_dirs = NULL;
 
         g_object_unref (manager);
     }
@@ -167,6 +170,7 @@ list_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
 {
     GFile *file = G_FILE (object);
     g_autoptr(SharedDataManager) manager = SHARED_DATA_MANAGER (user_data);
+    SharedDataManagerPrivate *priv = shared_data_manager_get_instance_private (manager);
 
     g_autoptr(GError) error = NULL;
     GFileEnumerator *enumerator = g_file_enumerate_children_finish (file, res, &error);
@@ -175,7 +179,7 @@ list_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
     if (!enumerator)
         return;
 
-    manager->priv->starting_dirs = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+    priv->starting_dirs = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
     g_file_enumerator_next_files_async (enumerator, NUM_ENUMERATION_FILES,
                                         G_PRIORITY_DEFAULT, NULL,
                                         next_user_dirs_cb, g_steal_pointer (&manager));
@@ -204,28 +208,29 @@ shared_data_manager_start (SharedDataManager *manager)
 static void
 shared_data_manager_init (SharedDataManager *manager)
 {
-    manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, SHARED_DATA_MANAGER_TYPE, SharedDataManagerPrivate);
+    SharedDataManagerPrivate *priv = shared_data_manager_get_instance_private (manager);
 
     /* Grab current greeter-user gid */
-    manager->priv->greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
-    struct passwd *greeter_entry = getpwnam (manager->priv->greeter_user);
+    priv->greeter_user = config_get_string (config_get_instance (), "LightDM", "greeter-user");
+    struct passwd *greeter_entry = getpwnam (priv->greeter_user);
     if (greeter_entry)
-        manager->priv->greeter_gid = greeter_entry->pw_gid;
+        priv->greeter_gid = greeter_entry->pw_gid;
 }
 
 static void
 shared_data_manager_finalize (GObject *object)
 {
     SharedDataManager *self = SHARED_DATA_MANAGER (object);
+    SharedDataManagerPrivate *priv = shared_data_manager_get_instance_private (self);
 
     /* Should also cancel outstanding GIO operations, but whatever, let them do their thing. */
 
     g_signal_handlers_disconnect_by_data (common_user_list_get_instance (), self);
 
-    if (self->priv->starting_dirs)
-        g_hash_table_destroy (self->priv->starting_dirs);
+    if (priv->starting_dirs)
+        g_hash_table_destroy (priv->starting_dirs);
 
-    g_clear_pointer (&self->priv->greeter_user, g_free);
+    g_clear_pointer (&priv->greeter_user, g_free);
 
     G_OBJECT_CLASS (shared_data_manager_parent_class)->finalize (object);
 }

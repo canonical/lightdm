@@ -27,12 +27,9 @@ G_BEGIN_DECLS
 #define PROCESS_SIGNAL_GOT_SIGNAL "got-signal"
 #define PROCESS_SIGNAL_STOPPED    "stopped"
 
-typedef struct ProcessPrivate ProcessPrivate;
-
 typedef struct
 {
-    GObject              parent_instance;
-    ProcessPrivate *priv;
+    GObject parent_instance;
 } Process;
 
 typedef struct
