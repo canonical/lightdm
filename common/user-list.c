@@ -45,6 +45,7 @@ enum
     USER_PROP_HAS_MESSAGES,
     USER_PROP_UID,
     USER_PROP_GID,
+    USER_PROP_IS_LOCKED,
 };
 
 enum
@@ -139,6 +140,9 @@ typedef struct
 
     /* User default session */
     gchar *session;
+
+    /* TRUE if this user is locked */
+    gboolean is_locked;
 } CommonUserPrivate;
 
 typedef struct
@@ -560,6 +564,8 @@ load_accounts_user (CommonUser *user)
         }
         else if (strcmp (name, "Uid") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_UINT64))
             priv->uid = g_variant_get_uint64 (value);
+        else if (strcmp (name, "Locked") == 0 && g_variant_is_of_type (value, G_VARIANT_TYPE_BOOLEAN))
+            priv->is_locked = g_variant_get_boolean (value);
     }
 
     g_autoptr(GVariant) extra_result = g_dbus_connection_call_sync (priv->bus,
@@ -1474,6 +1480,21 @@ common_user_get_gid (CommonUser *user)
     return priv->gid;
 }
 
+/**
+ * common_user_get_is_locked:
+ * @user: A #CommonUser
+ *
+ * Check if a user is locked.
+ *
+ * Return value: %TRUE if the user is locked.
+ **/
+gboolean
+common_user_get_is_locked (CommonUser *user)
+{
+    g_return_val_if_fail (COMMON_IS_USER (user), FALSE);
+    return GET_USER_PRIVATE (user)->is_locked;
+}
+
 static void
 common_user_init (CommonUser *user)
 {
@@ -1545,6 +1566,9 @@ common_user_get_property (GObject    *object,
         break;
     case USER_PROP_GID:
         g_value_set_uint64 (value, common_user_get_gid (self));
+        break;
+    case USER_PROP_IS_LOCKED:
+        g_value_set_boolean (value, common_user_get_is_locked (self));
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1691,7 +1715,13 @@ common_user_class_init (CommonUserClass *klass)
                                                           G_MAXUINT64,
                                                           0,
                                                           G_PARAM_READWRITE));
-
+    g_object_class_install_property (object_class,
+                                     USER_PROP_IS_LOCKED,
+                                     g_param_spec_boolean ("is-locked",
+                                                           "is-locked",
+                                                           "TRUE if the user is currently locked",
+                                                           FALSE,
+                                                           G_PARAM_READABLE));
     /**
      * CommonUser::changed:
      * @user: A #CommonUser
