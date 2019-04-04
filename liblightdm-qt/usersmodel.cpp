@@ -31,6 +31,7 @@ public:
     bool hasMessages;
     quint64 uid;
     QString displayName() const;
+    bool isLocked;
 };
 
 QString UserItem::displayName() const {
@@ -101,6 +102,7 @@ void UsersModelPrivate::loadUsers()
             user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
             user.hasMessages = lightdm_user_get_has_messages(ldmUser);
             user.uid = (quint64)lightdm_user_get_uid(ldmUser);
+            user.isLocked = lightdm_user_get_is_locked(ldmUser);
             users.append(user);
         }
 
@@ -127,6 +129,7 @@ void UsersModelPrivate::cb_userAdded(LightDMUserList *user_list, LightDMUser *ld
     user.isLoggedIn = lightdm_user_get_logged_in(ldmUser);
     user.hasMessages = lightdm_user_get_has_messages(ldmUser);
     user.uid = (quint64)lightdm_user_get_uid(ldmUser);
+    user.isLocked = lightdm_user_get_is_locked(ldmUser);
     that->users.append(user);
 
     that->q_func()->endInsertRows();
@@ -150,6 +153,7 @@ void UsersModelPrivate::cb_userChanged(LightDMUserList *user_list, LightDMUser *
             that->users[i].isLoggedIn = lightdm_user_get_logged_in(ldmUser);
             that->users[i].hasMessages = lightdm_user_get_has_messages(ldmUser);
             that->users[i].uid = (quint64)lightdm_user_get_uid(ldmUser);
+            that->users[i].isLocked = lightdm_user_get_is_locked(ldmUser);
 
             QModelIndex index = that->q_ptr->createIndex(i, 0);
             that->q_ptr->dataChanged(index, index);
@@ -192,6 +196,7 @@ UsersModel::UsersModel(QObject *parent) :
     roles[HasMessagesRole] = "hasMessages";
     roles[ImagePathRole] = "imagePath";
     roles[UidRole] = "uid";
+    roles[IsLockedRole] = "isLocked";
     setRoleNames(roles);
     d->loadUsers();
 
@@ -245,6 +250,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
         return d->users[row].image;
     case UsersModel::UidRole:
         return d->users[row].uid;
+    case UsersModel::IsLockedRole:
+        return d->users[row].isLocked;
     }
 
     return QVariant();

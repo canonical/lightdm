@@ -136,6 +136,8 @@ gboolean lightdm_user_get_has_messages (LightDMUser *user);
 
 uid_t lightdm_user_get_uid (LightDMUser *user);
 
+gboolean lightdm_user_get_is_locked (LightDMUser *user);
+
 G_END_DECLS
 
 #endif /* LIGHTDM_USER_H_ */

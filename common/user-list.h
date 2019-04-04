@@ -112,6 +112,8 @@ uid_t common_user_get_uid (CommonUser *user);
 
 gid_t common_user_get_gid (CommonUser *user);
 
+gboolean common_user_get_is_locked (CommonUser *user);
+
 G_END_DECLS
 
 #endif /* COMMON_USER_LIST_H_ */
