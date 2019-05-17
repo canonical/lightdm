@@ -192,6 +192,7 @@ lightdm_user_get_session
 lightdm_user_get_logged_in
 lightdm_user_get_has_messages
 lightdm_user_get_uid
+lightdm_user_get_is_locked
 <SUBSECTION Standard>
 LIGHTDM_IS_USER
 LIGHTDM_IS_USER_CLASS
