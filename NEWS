@@ -1,3 +1,11 @@
+Overview of changes in lightdm 1.30.0
+
+    * Add lightdm_user_get_is_locked ()
+    * Hide users with shell /bin/false
+    * Remove unity-system-compositor support (dead upstream)
+    * Fix dm-tool crash
+    * Update documentation
+
 Overview of changes in lightdm 1.28.0
 
     * Continue to shutdown session is removing X authority fails
