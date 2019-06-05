@@ -75,6 +75,14 @@ typedef struct
     /* TRUE if logging into guest session */
     gboolean guest_account_authenticated;
 
+    /* Avoid a race where we already sent SERVER_MESSAGE_END_AUTHENTICATION to the greeter,
+     * but before it digests it, it handles more X11 events, sending us a GREETER_MESSAGE_CONTINUE_AUTHENTICATION
+     * (before the GREETER_MESSAGE_START_SESSION) which will confuse handle_continue_authentication(),
+     * calling session_respond_error(), which then sends a PAM_CONV_ERR to the session child,
+     * which will confuse that because it's expecting the (length of the) session error file name.
+     */
+    gboolean have_sent_end_authentication;
+
     /* Communication channels to communicate with */
     int to_greeter_input;
     int from_greeter_output;
@@ -410,11 +418,13 @@ send_end_authentication (Greeter *greeter, guint32 sequence_number, const gchar 
 {
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
+    GreeterPrivate *priv = greeter_get_instance_private (greeter);
     write_header (message, MAX_MESSAGE_LENGTH, SERVER_MESSAGE_END_AUTHENTICATION, int_length () + string_length (username) + int_length (), &offset);
     write_int (message, MAX_MESSAGE_LENGTH, sequence_number, &offset);
     write_string (message, MAX_MESSAGE_LENGTH, username, &offset);
     write_int (message, MAX_MESSAGE_LENGTH, result, &offset);
     write_message (greeter, message, offset);
+    priv->have_sent_end_authentication = TRUE;
 }
 
 void
@@ -489,6 +499,7 @@ reset_session (Greeter *greeter)
     }
 
     priv->guest_account_authenticated = FALSE;
+    priv->have_sent_end_authentication = FALSE;
 }
 
 static void
@@ -647,6 +658,12 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
 
     size_t messages_length = session_get_messages_length (priv->authentication_session);
     const struct pam_message *messages = session_get_messages (priv->authentication_session);
+
+    /* We may have already sent SERVER_MESSAGE_END_AUTHENTICATION, but the greeter may not have digested it yet. */
+    if (priv->have_sent_end_authentication) {
+        g_debug ("Ignoring continue authentication");
+        return;
+    }
 
     /* Check correct number of responses */
     int n_prompts = 0;
