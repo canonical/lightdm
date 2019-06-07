@@ -73,6 +73,10 @@ static GHashTable *processes = NULL;
 static pid_t signal_pid;
 static int signal_pipe[2];
 
+#ifndef HAVE_CLEARENV
+extern char **environ;
+#endif
+
 Process *
 process_get_current (void)
 {
