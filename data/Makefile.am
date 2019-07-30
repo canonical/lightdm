@@ -4,7 +4,7 @@ dist_init_DATA = init/lightdm.conf
 confdir = $(sysconfdir)/lightdm
 dist_conf_DATA = lightdm.conf users.conf keys.conf
 
-dbusconfdir = $(sysconfdir)/dbus-1/system.d
+dbusconfdir = $(datadir)/dbus-1/system.d
 dist_dbusconf_DATA = org.freedesktop.DisplayManager.conf
 
 pamdir = $(sysconfdir)/pam.d
