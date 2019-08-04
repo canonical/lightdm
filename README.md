@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/CanonicalLtd/lightdm.svg?branch=master)](https://travis-ci.org/CanonicalLtd/lightdm)
+[![Build Status](https://travis-ci.org/Canonical/lightdm.svg?branch=master)](https://travis-ci.org/Canonical/lightdm)
 
 LightDM is a cross-desktop display manager. A display manager is a daemon that:
 - Runs display servers (e.g. X) where necessary.
@@ -47,7 +47,7 @@ For example, if a sysadmind wanted to override the system configured default ses
 user-session=mysession
 ```
 
-Configuration is in keyfile format. For most installations you will want to change the keys in the `[Seat:*]` section as this applies to all seats on the system (normally just one). A configuration file showing all the possible keys is provided in [`data/lightdm.conf`](https://github.com/CanonicalLtd/lightdm/blob/master/data/lightdm.conf).
+Configuration is in keyfile format. For most installations you will want to change the keys in the `[Seat:*]` section as this applies to all seats on the system (normally just one). A configuration file showing all the possible keys is provided in [`data/lightdm.conf`](https://github.com/Canonical/lightdm/blob/master/data/lightdm.conf).
 
 # Questions
 

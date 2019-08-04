@@ -1,2 +1,2 @@
 version=3
-https://github.com/CanonicalLtd/lightdm/releases .*/lightdm-([0-9.]+)\.tar\.xz
+https://github.com/Canonical/lightdm/releases .*/lightdm-([0-9.]+)\.tar\.xz
