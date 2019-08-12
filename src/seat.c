@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <config.h>
 
 #include "seat.h"
 #include "configuration.h"
@@ -947,6 +948,41 @@ get_session_argv (Seat *seat, SessionConfig *session_config, const gchar *sessio
 }
 
 static SessionConfig *
+find_default_session_config (Seat *seat, const gchar *sessions_dir)
+{
+    g_return_val_if_fail (sessions_dir != NULL, NULL);
+
+    g_auto(GStrv) dirs = g_strsplit (sessions_dir, ":", -1);
+    for (int i = 0; dirs[i]; i++)
+    {
+        const gchar *default_session_type = "x";
+        if (strcmp (dirs[i], WAYLAND_SESSIONS_DIR) == 0)
+            default_session_type = "wayland";
+
+        g_autoptr(GError) error = NULL;
+        GDir *directory = g_dir_open (dirs[i], 0, &error);
+        if (error && !g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+            g_warning ("Failed to open sessions directory: %s", error->message);
+
+        if (directory)
+        {
+            const gchar *filename;
+            while ((filename = g_dir_read_name (directory)))
+            {
+                if (!g_str_has_suffix (filename, ".desktop"))
+                    continue;
+                g_autofree gchar *path = g_build_filename (dirs[i], filename, NULL);
+                SessionConfig *session_config = session_config_new_from_file (path, default_session_type, &error);
+                if (session_config)
+                    return session_config;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static SessionConfig *
 find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session_name)
 {
     g_return_val_if_fail (sessions_dir != NULL, NULL);
@@ -963,6 +999,13 @@ find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session
         g_autofree gchar *path = g_build_filename (dirs[i], filename, NULL);
         g_autoptr(GError) error = NULL;
         SessionConfig *session_config = session_config_new_from_file (path, default_session_type, &error);
+        if (session_config)
+            return session_config;
+    }
+
+    if (0 == g_strcmp0 (session_name, DEFAULT_USER_SESSION))
+    {
+        SessionConfig *session_config = find_default_session_config (seat, sessions_dir);
         if (session_config)
             return session_config;
     }
