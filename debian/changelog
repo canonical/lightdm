@@ -1,3 +1,19 @@
+lightdm (1.30.0-0ubuntu1) eoan; urgency=medium
+
+  * New upstream release:
+    - Add lightdm_user_get_is_locked ()
+    - Hide users with shell /bin/false
+    - Remove unity-system-compositor support (dead upstream)
+    - Fix dm-tool crash
+    - Update documentation
+  * debian/control:
+  * debian/copyright:
+    - Update links to GitHub
+  * debian/liblightdm-gobject-1-0.symbols:
+    - Updated
+
+ -- Robert Ancell <robert.ancell@canonical.com>  Wed, 14 Aug 2019 14:18:58 +1200
+
 lightdm (1.28.0-0ubuntu1) cosmic; urgency=medium
 
   * New upstream release:

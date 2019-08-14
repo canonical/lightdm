@@ -1,7 +1,7 @@
 Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=59
 Name: LightDM
 Maintainer: Robert Ancell <robert.ancell@gmail.com>
-Source: https://launchpad.net/lightdm
+Source: https://github.com/canonical/lightdm
 
 Files: *
 Copyright: 2010, Robert Ancell <robert.ancell@gmail.com>

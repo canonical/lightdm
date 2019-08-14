@@ -28,10 +28,8 @@ Build-Depends: autoconf,
                quilt,
                valac,
                yelp-tools
-Homepage: https://launchpad.net/lightdm
-# If you aren't a member of ~lightdm-team but need to upload packaging changes,
-# just go ahead.  ~lightdm-team will notice and sync up the code again.
-Vcs-Bzr: https://code.launchpad.net/~lightdm-team/lightdm/trunk
+Homepage: https://github.com/canonical/lightdm
+Vcs-Git: https://github.com/canonical/lightdm
 
 Package: lightdm
 Architecture: any
