@@ -41,10 +41,10 @@ Depends: ${misc:Depends},
          dbus,
          libglib2.0-bin,
          libpam-runtime (>= 0.76-14),
-         libpam-modules,
-         plymouth (>= 0.8.8-0ubuntu18) [linux-any]
+         libpam-modules
 Recommends: xserver-xorg,
             unity-greeter | lightdm-greeter | lightdm-kde-greeter,
+            plymouth (>= 0.8.8-0ubuntu18) [linux-any]
 Suggests: bindfs
 Conflicts: liblightdm-gobject-0-0,
            liblightdm-qt-0-0,
