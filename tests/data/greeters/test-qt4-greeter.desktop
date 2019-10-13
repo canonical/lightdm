@@ -1,4 +1,0 @@
-[Desktop Entry]
-Name=Test Qt4 Greeter
-Comment=LightDM test Qt4 greeter
-Exec=test-qt4-greeter

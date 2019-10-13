@@ -19,7 +19,6 @@ Build-Depends: autoconf,
                libglib2.0-dev,
                libgtk-3-dev,
                libpam0g-dev,
-               libqt4-dev,
                libxcb1-dev,
                libxdmcp-dev,
                libxklavier-dev,
@@ -78,19 +77,6 @@ Depends: ${misc:Depends},
 Description: Typelib file for liblightdm-1
  A GObject based library for LightDM clients to use to interface with LightDM.
 
-Package: liblightdm-qt-3-0
-Section: libs
-Architecture: any
-Multi-Arch: same
-Pre-Depends: ${misc:Pre-Depends}
-Depends: ${misc:Depends},
-         ${shlibs:Depends},
-Recommends: lightdm
-Conflicts: liblightdm-qt-1-0 (>= 1.1.1)
-Replaces: liblightdm-qt-1-0 (>= 1.1.1)
-Description: LightDM Qt client library
- A Qt based library for LightDM clients to use to interface with LightDM.
-
 Package: liblightdm-qt5-3-0
 Section: libs
 Architecture: any
@@ -114,21 +100,6 @@ Depends: ${misc:Depends},
          libxklavier-dev,
 Description: LightDM GObject client library (development files)
  A GObject based library for LightDM clients to use to interface with LightDM.
- .
- This package contains header files and development information, which
- is useful for building LightDM greeters and user switchers.
-
-Package: liblightdm-qt-dev
-Section: libdevel
-Architecture: any
-Multi-Arch: same
-Depends: ${misc:Depends},
-         liblightdm-qt-3-0 (= ${binary:Version}),
-         libqt4-dev,
-Breaks: liblightdm-qt-1-dev (>= 1.1.1), liblightdm-qt-3-dev
-Replaces: liblightdm-qt-1-dev (>= 1.1.1), liblightdm-qt-3-dev
-Description: LightDM Qt client library (development files)
- A Qt based library for LightDM clients to use to interface with LightDM.
  .
  This package contains header files and development information, which
  is useful for building LightDM greeters and user switchers.

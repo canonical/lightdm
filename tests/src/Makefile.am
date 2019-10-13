@@ -32,10 +32,6 @@ libsystem_la_LIBADD = -ldl $(GLIB_LIBS) $(GIO_UNIX_LIBS)
 # but produces a shared library (instead of just a static library)
 libsystem_la_LDFLAGS = -rpath /nowhere
 
-if COMPILE_LIBLIGHTDM_QT4
-noinst_PROGRAMS += test-qt4-greeter
-endif
-
 if COMPILE_LIBLIGHTDM_QT5
 noinst_PROGRAMS += test-qt5-greeter
 endif
@@ -137,30 +133,22 @@ test_script_hook_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS)
 
-test-qt4-greeter_moc4.cpp: test-qt-greeter.h
-	$(am__v_MOC4_$(V)) $(MOC4) $< -o $@
 test-qt5-greeter_moc5.cpp: test-qt-greeter.h
 	$(am__v_MOC5_$(V)) $(MOC5) $< -o $@
 common_qt_sources = test-qt-greeter.cpp test-qt-greeter.h status.c status.h
-test_qt4_greeter_SOURCES = $(common_qt_sources)
 test_qt5_greeter_SOURCES = $(common_qt_sources)
-nodist_test_qt4_greeter_SOURCES = test-qt4-greeter_moc4.cpp
 nodist_test_qt5_greeter_SOURCES = test-qt5-greeter_moc5.cpp
 common_qt_cflags = \
 	$(WARN_CXXFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS) \
 	$(XCB_CFLAGS)
-test_qt4_greeter_CFLAGS = $(common_qt_cflags)
 test_qt5_greeter_CFLAGS = $(common_qt_cflags)
 common_qt_cxxflags = \
 	-fPIC \
 	-DQT_DISABLE_DEPRECATED_BEFORE="QT_VERSION_CHECK(4, 0, 0)" \
 	-I$(top_srcdir)/liblightdm-qt \
 	$(GLIB_CFLAGS)
-test_qt4_greeter_CXXFLAGS = \
-	$(common_qt_cxxflags) \
-	$(LIBLIGHTDM_QT4_CFLAGS)
 test_qt5_greeter_CXXFLAGS = \
 	$(common_qt_cxxflags) \
 	$(LIBLIGHTDM_QT5_CFLAGS)
@@ -171,10 +159,6 @@ common_qt_ldadd = \
 	$(GLIB_LIBS) \
 	$(GIO_UNIX_LIBS) \
 	$(XCB_LIBS)
-test_qt4_greeter_LDADD = \
-	$(common_qt_ldadd) \
-	-llightdm-qt-3 \
-	$(LIBLIGHTDM_QT4_LIBS)
 test_qt5_greeter_LDADD = \
 	$(common_qt_ldadd) \
 	-llightdm-qt5-3 \
@@ -224,16 +208,9 @@ vnc_client_LDADD = \
 	$(GIO_UNIX_LIBS)
 
 CLEANFILES = \
-	test-qt4-greeter_moc4.cpp \
 	test-qt5-greeter_moc5.cpp
 
 # Support pretty printing MOC
-AM_V_MOC4 = $(am__v_MOC4_$(V))
-am__v_MOC4_ = $(am__v_MOC4_$(AM_DEFAULT_VERBOSITY))
-am__v_MOC4_0 = @echo "  MOC4    " $@;
-%_moc4.cpp: QLightDM/%.h
-	$(AM_V_MOC4) $(MOC4) $< -o $@
-
 AM_V_MOC5 = $(am__v_MOC5_$(V))
 am__v_MOC5_ = $(am__v_MOC5_$(AM_DEFAULT_VERBOSITY))
 am__v_MOC5_0 = @echo "  MOC5    " $@;

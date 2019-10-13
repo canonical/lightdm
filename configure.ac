@@ -87,40 +87,6 @@ PKG_CHECK_MODULES(LIBLIGHTDM_GOBJECT, [
     x11
 ])
 
-AC_ARG_ENABLE(liblightdm-qt,
-	AS_HELP_STRING([--enable-liblightdm-qt],[Enable LightDM client Qt4 libraries [[default=auto]]]),
-	[enable_liblightdm_qt4=$enableval],
-	[enable_liblightdm_qt4="auto"])
-compile_liblightdm_qt4=no
-if test x"$enable_liblightdm_qt4" != "xno" ; then
-    PKG_CHECK_MODULES(LIBLIGHTDM_QT4, [
-        QtCore
-        QtDBus
-        QtGui
-    ],
-    [compile_liblightdm_qt4=yes],
-    [if test "x$enable_liblightdm_qt4" != xauto; then
-        AC_MSG_FAILURE(
-          [--enable-liblightdm-qt was given, but test for Qt4 failed])
-      fi
-    ])
-
-    AC_CHECK_TOOLS(MOC4, [moc-qt4 moc])
-    if test x$MOC4 = x; then
-        compile_liblightdm_qt4=no
-        if test "x$enable_liblightdm_qt4" != xauto; then
-            AC_MSG_FAILURE(
-              [--enable-liblightdm-qt4 was given, but MOC not found])
-        fi
-    fi
-    if test x"$MOC4" = xmoc; then
-        if test x"$(readlink $(which $MOC4))" = xqtchooser; then
-            MOC4="$MOC4 --qt=4"
-        fi
-    fi
-fi
-AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT4, test x"$compile_liblightdm_qt4" != "xno")
-
 AC_ARG_ENABLE(liblightdm-qt5,
 	AS_HELP_STRING([--enable-liblightdm-qt5],[Enable LightDM client Qt5 libraries [[default=auto]]]),
 	[enable_liblightdm_qt5=$enableval],
@@ -245,7 +211,6 @@ help/Makefile
 liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-gobject/Makefile
 liblightdm-qt/Makefile
-liblightdm-qt/liblightdm-qt-3.pc
 liblightdm-qt/liblightdm-qt5-3.pc
 po/Makefile.in
 src/Makefile
@@ -268,7 +233,6 @@ echo "
         User session:             $DEFAULT_USER_SESSION
         GObject introspection:    $found_introspection
         Vala bindings:            $enable_vala
-        liblightdm-qt:            $compile_liblightdm_qt4
         liblightdm-qt5:           $compile_liblightdm_qt5
         libaudit support:         $use_libaudit
         Enable tests:             $enable_tests
