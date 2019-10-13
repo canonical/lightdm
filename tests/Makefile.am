@@ -297,42 +297,6 @@ TESTS += \
 	test-login-remote-session-python \
 	test-power-python
 
-if COMPILE_LIBLIGHTDM_QT4
-TESTS += \
-	test-autologin-timeout-qt4 \
-	test-autologin-guest-timeout-qt4 \
-	test-autologin-session-timeout-qt4 \
-	test-cancel-authentication-qt4 \
-	test-login-qt4 \
-	test-login-manual-qt4 \
-	test-login-manual-previous-session-qt4 \
-	test-login-no-password-qt4 \
-	test-login-long-username-qt4 \
-	test-login-long-password-qt4 \
-	test-login-two-factor-qt4 \
-	test-login-new-authtok-qt4 \
-	test-login-info-prompt-qt4 \
-	test-login-multi-info-prompt-qt4 \
-	test-login-previous-session-qt4 \
-	test-login-wrong-password-qt4 \
-	test-login-invalid-user-qt4 \
-	test-login-invalid-session-qt4 \
-	test-login-logout-qt4 \
-	test-login-pick-session-qt4 \
-	test-login-remember-session-qt4 \
-	test-login-manual-remember-session-qt4 \
-	test-login-guest-qt4 \
-	test-login-guest-pick-session-qt4 \
-	test-login-guest-disabled-qt4 \
-	test-login-guest-no-setup-script-qt4 \
-	test-login-guest-fail-setup-script-qt4 \
-	test-login-guest-logout-qt4 \
-	test-login-remote-session-qt4 \
-	test-sessions-qt4 \
-	test-users-qt4 \
-	test-power-qt4
-endif
-
 if COMPILE_LIBLIGHTDM_QT5
 TESTS += \
 	test-autologin-timeout-qt5 \
@@ -377,7 +341,6 @@ EXTRA_DIST = \
 	data/greeters/test-gobject-greeter.desktop \
 	data/greeters/test-mir-greeter.desktop \
 	data/greeters/test-python-greeter.desktop \
-	data/greeters/test-qt4-greeter.desktop \
 	data/greeters/test-qt5-greeter.desktop \
 	data/greeters/test-wayland-greeter.desktop \
 	data/keys.conf \
