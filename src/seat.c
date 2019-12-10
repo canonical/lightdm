@@ -956,7 +956,7 @@ find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session
     for (int i = 0; dirs[i]; i++)
     {
         const gchar *default_session_type = "x";
-        if (strcmp (dirs[i], WAYLAND_SESSIONS_DIR) == 0)
+        if (dirs[i] != NULL && g_str_has_suffix (dirs[i], "/wayland-sessions") == TRUE)
             default_session_type = "wayland";
 
         g_autofree gchar *filename = g_strdup_printf ("%s.desktop", session_name);
