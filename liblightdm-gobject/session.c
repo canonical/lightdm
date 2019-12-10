@@ -171,7 +171,7 @@ load_sessions (const gchar *sessions_dir)
     {
         const gchar *default_type = "x";
 
-        if (strcmp (dirs[i], WAYLAND_SESSIONS_DIR) == 0)
+        if (dirs[i] != NULL && g_str_has_suffix (dirs[i], "/wayland-sessions") == TRUE)
             default_type = "wayland";
 
         sessions = load_sessions_dir (sessions, dirs[i], default_type);
