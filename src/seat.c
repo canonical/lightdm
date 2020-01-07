@@ -987,9 +987,17 @@ static void
 configure_session (Session *session, SessionConfig *config, const gchar *session_name, const gchar *language)
 {
     session_set_config (session, config);
-    session_set_env (session, "XDG_SESSION_DESKTOP", session_name);
-    session_set_env (session, "DESKTOP_SESSION", session_name);
-    session_set_env (session, "GDMSESSION", session_name);
+
+    if (g_strrstr (session_name, "@") != NULL) {
+        g_auto(GStrv) session_name_type = g_strsplit (session_name, "@", 2);
+        session_set_env (session, "XDG_SESSION_DESKTOP", session_name_type[0]);
+        session_set_env (session, "DESKTOP_SESSION", session_name_type[0]);
+        session_set_env (session, "GDMSESSION", session_name_type[0]);
+    } else {
+        session_set_env (session, "XDG_SESSION_DESKTOP", session_name);
+        session_set_env (session, "DESKTOP_SESSION", session_name);
+        session_set_env (session, "GDMSESSION", session_name);
+    }
     gchar **desktop_names = session_config_get_desktop_names (config);
     if (desktop_names)
     {
