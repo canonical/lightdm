@@ -145,7 +145,8 @@ load_sessions_dir (GList *sessions, const gchar *sessions_dir, const gchar *defa
 
         if (result)
         {
-            g_autofree gchar *key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
+            g_autofree gchar *name = g_strndup (filename, strlen (filename) - strlen (".desktop"));
+            g_autofree gchar *key = g_strconcat (name, "@", default_type, NULL);
             LightDMSession *session = load_session (key_file, key, default_type);
             if (session)
             {

@@ -952,14 +952,25 @@ find_session_config (Seat *seat, const gchar *sessions_dir, const gchar *session
     g_return_val_if_fail (sessions_dir != NULL, NULL);
     g_return_val_if_fail (session_name != NULL, NULL);
 
+    g_auto(GStrv) session_name_type;
+    g_autofree gchar *filename;
+
     g_auto(GStrv) dirs = g_strsplit (sessions_dir, ":", -1);
+    if (g_strrstr (session_name, "@") != NULL) {
+        session_name_type = g_strsplit (session_name, "@", 2);
+        filename = g_strdup_printf ("%s.desktop", session_name_type[0]);
+    } else {
+        filename = g_strdup_printf ("%s.desktop", session_name);
+    }
     for (int i = 0; dirs[i]; i++)
     {
         const gchar *default_session_type = "x";
         if (dirs[i] != NULL && g_str_has_suffix (dirs[i], "/wayland-sessions") == TRUE)
             default_session_type = "wayland";
 
-        g_autofree gchar *filename = g_strdup_printf ("%s.desktop", session_name);
+        if (g_strv_length (session_name_type) > 0 && g_strcmp0 (session_name_type[1], default_session_type))
+            continue;
+
         g_autofree gchar *path = g_build_filename (dirs[i], filename, NULL);
         g_autoptr(GError) error = NULL;
         SessionConfig *session_config = session_config_new_from_file (path, default_session_type, &error);
