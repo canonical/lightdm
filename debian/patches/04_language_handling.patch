@@ -69,12 +69,15 @@ Index: lightdm/src/seat.c
 ===================================================================
 --- lightdm.orig/src/seat.c
 +++ lightdm/src/seat.c
-@@ -987,7 +987,7 @@ configure_session (Session *session, Ses
+@@ -987,7 +987,10 @@ configure_session (Session *session, Se
      }
      if (language && language[0] != '\0')
      {
 -        session_set_env (session, "LANG", language);
-+        session_set_env (session, "LANGUAGE", language);
++        /* Only set LANGUAGE if not in a live session
++           https://launchpad.net/bugs/1861481 */
++        if (system ("df | grep -q ^/cow") != 0)
++            session_set_env (session, "LANGUAGE", language);
          session_set_env (session, "GDM_LANG", language);
      }
  }
