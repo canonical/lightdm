@@ -19,6 +19,7 @@
 
 #include "x-server-local.h"
 #include "configuration.h"
+#include "accounts.h"
 #include "process.h"
 #include "vt.h"
 
@@ -29,6 +30,9 @@ typedef struct
 
     /* Command to run the X server */
     gchar *command;
+
+    /* Optional user to drop privileges (switch) to */
+    User *user;
 
     /* Display number to use */
     guint display_number;
@@ -192,6 +196,16 @@ x_server_local_set_command (XServerLocal *server, const gchar *command)
     g_return_if_fail (server != NULL);
     g_free (priv->command);
     priv->command = g_strdup (command);
+}
+
+void
+x_server_local_set_user(XServerLocal *server, User *user)
+{
+    XServerLocalPrivate *priv = x_server_local_get_instance_private (server);
+    g_return_if_fail (server != NULL);
+    g_return_if_fail (user != NULL);
+    g_clear_object (&priv->user);
+    priv->user = g_object_ref(user);
 }
 
 void
@@ -417,13 +431,14 @@ write_authority_file (XServerLocal *server)
     /* Get file to write to if have authority */
     if (!priv->authority_file)
     {
-        g_autofree gchar *run_dir = NULL;
-        g_autofree gchar *dir = NULL;
+        g_autofree gchar *run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
+        g_autofree gchar *dir = g_build_filename (run_dir, priv->user ? user_get_name (priv->user) : "root", NULL);
 
-        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-        dir = g_build_filename (run_dir, "root", NULL);
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
             l_warning (server, "Failed to make authority directory %s: %s", dir, strerror (errno));
+        if (priv->user != NULL && getuid () == 0)
+            if (chown (dir, user_get_uid (priv->user), user_get_gid (priv->user)) < 0)
+                l_warning (server, "Failed to set ownership of x-server authority dir: %s", strerror (errno));
 
         priv->authority_file = g_build_filename (dir, x_server_get_address (X_SERVER (server)), NULL);
     }
@@ -434,6 +449,9 @@ write_authority_file (XServerLocal *server)
     x_authority_write (authority, XAUTH_WRITE_MODE_REPLACE, priv->authority_file, &error);
     if (error)
         l_warning (server, "Failed to write authority: %s", error->message);
+    if (priv->user != NULL && getuid () == 0)
+      if (chown (priv->authority_file, user_get_uid (priv->user), user_get_gid (priv->user)) < 0)
+            l_warning (server, "Failed to set ownership of authority: %s", strerror (errno));
 }
 
 static gboolean
@@ -526,6 +544,8 @@ x_server_local_start (DisplayServer *display_server)
         g_string_append_printf (command, " %s", extra_options);
 
     process_set_command (priv->x_server_process, command->str);
+    if (priv->user)
+        process_set_user (priv->x_server_process, priv->user);
 
     l_debug (display_server, "Launching X Server");
 
@@ -589,6 +609,7 @@ x_server_local_finalize (GObject *object)
         g_signal_handlers_disconnect_matched (priv->x_server_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
     g_clear_object (&priv->x_server_process);
     g_clear_pointer (&priv->command, g_free);
+    g_clear_object (&priv->user);
     g_clear_pointer (&priv->config_file, g_free);
     g_clear_pointer (&priv->layout, g_free);
     g_clear_pointer (&priv->xdg_seat, g_free);
