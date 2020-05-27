@@ -14,6 +14,7 @@
 #include "seat-xvnc.h"
 #include "x-server-xvnc.h"
 #include "configuration.h"
+#include "accounts.h"
 
 typedef struct
 {
@@ -65,6 +66,16 @@ seat_xvnc_create_display_server (Seat *seat, Session *session)
     const gchar *command = config_get_string (config_get_instance (), "VNCServer", "command");
     if (command)
         x_server_local_set_command (X_SERVER_LOCAL (x_server), command);
+
+    const gchar *username = config_get_string (config_get_instance (), "VNCServer", "user");
+    if (username)
+    {
+        g_autoptr(User) user = accounts_get_user_by_name (username);
+        if (user)
+            x_server_local_set_user (X_SERVER_LOCAL (x_server), user);
+        else
+            l_warning(seat, "Unable to lookup records for user %s (will default to running user)", username);
+    }
 
     if (config_has_key (config_get_instance (), "VNCServer", "width") &&
         config_has_key (config_get_instance (), "VNCServer", "height"))

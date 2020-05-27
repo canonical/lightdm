@@ -9,6 +9,7 @@
  * license.
  */
 
+#define _GNU_SOURCE      /* Required to set saved under uid and gid */
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -21,6 +22,7 @@
 
 #include "log-file.h"
 #include "process.h"
+#include "accounts.h"
 
 enum {
     GOT_DATA,
@@ -43,6 +45,9 @@ typedef struct
 
     /* Command to run */
     gchar *command;
+
+    /* Optional user to drop privileges (switch) to */
+    User *user;
 
     /* TRUE to clear the environment in this process */
     gboolean clear_environment;
@@ -166,6 +171,17 @@ process_get_command (Process *process)
     return priv->command;
 }
 
+void
+process_set_user (Process *process, User *user)
+{
+    ProcessPrivate *priv = process_get_instance_private (process);
+    g_return_if_fail (process != NULL);
+    g_return_if_fail (user != NULL);
+
+    g_clear_object (&priv->user);
+    priv->user = g_object_ref (user);
+}
+
 static void
 process_watch_cb (GPid pid, gint status, gpointer data)
 {
@@ -252,6 +268,40 @@ process_start (Process *process, gboolean block)
 
         /* Reset SIGPIPE handler so the child has default behaviour (we disabled it at LightDM start) */
         signal (SIGPIPE, SIG_DFL);
+
+        /* Drop privileges (checks duplicated from OpenSSH code) */
+        if (priv->user != NULL && getuid () == 0)
+        {
+            gid_t gid_new = user_get_gid (priv->user);
+            gid_t uid_new = user_get_uid (priv->user);
+            gid_t gid_old = getgid ();
+            uid_t uid_old = getuid ();
+
+            /* Switch gid and uid (gid has to be first) */
+            if (setresgid (gid_new, gid_new, gid_new) == -1)
+                g_error ("Switching user: setresgid %u failed: %s", (u_int)gid_new, strerror (errno));
+
+            if (setresuid(uid_new, uid_new, uid_new) == -1)
+                g_error ("Switching user: setresuid %u failed: %s", (u_int)uid_new, strerror (errno));
+
+            /* Verify unable to restore gid */
+            if (gid_old != gid_new && uid_new != 0)
+                if (setgid (gid_old) != -1 || setegid (gid_old) != -1)
+                    g_error ("Switched user: able to restore old [e]gid");
+
+            /* Verify gid drop was successful  */
+            if (getgid () != gid_new || getegid () != gid_new)
+                g_error ("Switched user: incorrect gid:%u egid:%u (should be %u)", (u_int)getgid (), (u_int)getegid (), (u_int)gid_new);
+
+            /* Verify unable to restore uid */
+            if (uid_old != uid_new)
+                if (setuid (uid_old) != -1 || seteuid (uid_old) != -1)
+                    g_error ("Switched user: able to restore old [e]uid");
+
+            /* Verify uid drop was successful  */
+            if (getuid () != uid_new || geteuid () != uid_new)
+                g_error ("Switched user: incorrect uid:%u euid:%u (should be %u)", (u_int)getuid (), (u_int)geteuid (), (u_int)uid_new);
+        }
 
         execvp (argv[0], argv);
         _exit (EXIT_FAILURE);
@@ -382,6 +432,7 @@ process_finalize (GObject *object)
 
     g_clear_pointer (&priv->log_file, g_free);
     g_clear_pointer (&priv->command, g_free);
+    g_clear_object (&priv->user);
     g_hash_table_unref (priv->env);
     if (priv->quit_timeout)
         g_source_remove (priv->quit_timeout);
