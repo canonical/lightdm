@@ -425,11 +425,10 @@ write_authority_file (XServerLocal *server)
     XServerLocalPrivate *priv = x_server_local_get_instance_private (server);
 
     XAuthority *authority = x_server_get_authority (X_SERVER (server));
-    if (!authority)
-        return;
+    g_return_if_fail (authority != NULL);
 
     /* Get file to write to if have authority */
-    if (!priv->authority_file)
+    if (priv->authority_file == NULL)
     {
         g_autofree gchar *run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
         g_autofree gchar *dir = g_build_filename (run_dir, priv->user ? user_get_name (priv->user) : "root", NULL);
