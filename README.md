@@ -19,7 +19,7 @@ Releases are synchronised with the [Ubuntu release schedule](https://wiki.ubuntu
 
 The core LightDM project does not provide any greeter with it and you should install a greeter appropriate to your system. Popular greeter projects are:
 
- * [LightDM GTK+ Greeter](https://launchpad.net/lightdm-gtk-greeter) - a greeter that has moderate requirements (GTK+).
+ * [LightDM GTK+ Greeter](https://github.com/Xubuntu/lightdm-gtk-greeter) - a greeter that has moderate requirements (GTK+).
  * [LightDM KDE](http://projects.kde.org/lightdm) - greeter used in [KDE](http://kde.org) (Qt)
  * [LXqt Greeter](https://github.com/lxde/lxqt-lightdm-greeter) - greeter used in [LXqt](http://lxqt.org/) (Qt)
  * [Pantheon Greeter](https://github.com/elementary/greeter) - greeter used in [elementary OS](https://elementary.io/) (GTK+/Clutter).
