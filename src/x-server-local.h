@@ -39,14 +39,6 @@ typedef struct
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (XServerLocal, g_object_unref)
 
-const gchar *x_server_local_get_version (void);
-
-gint x_server_local_version_compare (guint major, guint minor);
-
-guint x_server_local_get_unused_display_number (void);
-
-void x_server_local_release_display_number (guint display_number);
-
 GType x_server_local_get_type (void);
 
 XServerLocal *x_server_local_new (void);

@@ -89,7 +89,7 @@ find_version (const gchar *line)
     return g_strdup (line + strlen (XORG_VERSION_PREFIX));
 }
 
-const gchar *
+static const gchar *
 x_server_local_get_version (void)
 {
     if (version)
@@ -114,7 +114,7 @@ x_server_local_get_version (void)
     return version;
 }
 
-gint
+static gint
 x_server_local_version_compare (guint major, guint minor)
 {
     x_server_local_get_version ();
@@ -153,7 +153,7 @@ display_number_in_use (guint display_number)
     return in_use;
 }
 
-guint
+static guint
 x_server_local_get_unused_display_number (void)
 {
     guint number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
@@ -165,7 +165,7 @@ x_server_local_get_unused_display_number (void)
     return number;
 }
 
-void
+static void
 x_server_local_release_display_number (guint display_number)
 {
     for (GList *link = display_numbers; link; link = link->next)
