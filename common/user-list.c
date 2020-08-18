@@ -71,75 +71,75 @@ typedef struct
     GDBusConnection *bus;
 
     /* D-Bus signals for accounts service events */
-    guint user_added_signal;
-    guint user_removed_signal;
+    guint user_added_signal;   // 新增用户信号
+    guint user_removed_signal; // 删除用户信号
 
     /* D-Bus signals for display manager events */
-    guint session_added_signal;
-    guint session_removed_signal;
+    guint session_added_signal;   // 用户登录信号
+    guint session_removed_signal; // 用户注销信号，包括被管理员踢出
 
     /* File monitor for password file */
-    GFileMonitor *passwd_monitor;
+    GFileMonitor *passwd_monitor; // 监控用户密码文件，监听用户密码变更
 
     /* TRUE if have scanned users */
-    gboolean have_users;
+    gboolean have_users; // 当前用户列表是否存在用户
 
     /* List of users */
-    GList *users;
+    GList *users; // 所有用户列表   <链表>
 
     /* List of sessions */
-    GList *sessions;
+    GList *sessions; // 所有登录的用户列表  <链表>
 } CommonUserListPrivate;
 
 typedef struct
 {
     /* TRUE if have loaded the DMRC file */
-    gboolean loaded_dmrc;
+    gboolean loaded_dmrc; // 指示是否加载了DMRC文件
 
     /* Bus we are listening for accounts service on */
-    GDBusConnection *bus;
+    GDBusConnection *bus; // 用于连接用户帐号服务并监听对方发出的信号
 
     /* Accounts service path */
-    gchar *path;
+    gchar *path; // 帐号服务路径
 
     /* Update signal from accounts service */
-    guint changed_signal;
+    guint changed_signal; // 帐号服务的信号
 
     /* Username */
     gchar *name;
 
     /* Descriptive name for user */
-    gchar *real_name;
+    gchar *real_name; // 真实名字，用于展示，可以是中文
 
     /* Home directory of user */
-    gchar *home_directory;
+    gchar *home_directory; // 用户的主目录，包含文档、音乐、图像等等文件夹
 
     /* Shell for user */
-    gchar *shell;
+    gchar *shell; // 用户登录时运行的shell程序
 
     /* Image for user */
-    gchar *image;
+    gchar *image; // 用户登录时运行的shell程序
 
     /* Background image for users */
-    gchar *background;
+    gchar *background; // 用户登录时界面背景图片路径
 
     /* TRUE if this user has messages available */
-    gboolean has_messages;
+    gboolean has_messages; // 是否存在可用的消息，通常是其它用户发给这个用户的消息，
 
     /* UID of user */
-    guint64 uid;
+    guint64 uid; // 用户的UNIX唯一标识
 
     /* GID of user */
-    guint64 gid;
+    guint64 gid; // 用户直接隶属的组的UNIX唯一标识
 
     /* User chosen language */
-    gchar *language;
+    gchar *language; // 用户选择的语言
 
     /* User layout preferences */
     gchar **layouts;
 
     /* User default session */
-    gchar *session;
+    gchar *session; // 默认的用户会话名称
 
     /* TRUE if this user is locked */
     gboolean is_locked;
@@ -169,22 +169,18 @@ G_DEFINE_TYPE (CommonSession, common_session, G_TYPE_OBJECT)
 static CommonUserList *singleton = NULL;
 
 /**
- * common_user_list_get_instance:
- *
+ * @brief common_user_list_get_instance:
  * Get the user list.
- *
- * Return value: (transfer none): the #CommonUserList
- **/
-CommonUserList *
-common_user_list_get_instance (void)
+ * @return (transfer none): the #CommonUserList
+ */
+CommonUserList *common_user_list_get_instance(void)
 {
     if (!singleton)
         singleton = g_object_new (COMMON_TYPE_USER_LIST, NULL);
     return singleton;
 }
 
-void
-common_user_list_cleanup (void)
+void common_user_list_cleanup(void)
 {
     g_clear_object (&singleton);
 }

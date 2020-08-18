@@ -62,8 +62,7 @@ typedef struct
     GInetAddress *address;
 } AddrSortItem;
 
-XDMCPServer *
-xdmcp_server_new (void)
+XDMCPServer *xdmcp_server_new(void)
 {
     return g_object_new (XDMCP_SERVER_TYPE, NULL);
 }

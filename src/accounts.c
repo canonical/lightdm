@@ -19,8 +19,8 @@
 typedef struct
 {
     /* Internal user object */
-    CommonUser *common_user;
-} UserPrivate;
+    CommonUser *common_user; // 内部用户数据结构
+} UserPrivate;               // User的封装，保护私有数据
 
 G_DEFINE_TYPE_WITH_PRIVATE (User, user, G_TYPE_OBJECT)
 

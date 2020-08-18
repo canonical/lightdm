@@ -23,7 +23,7 @@ G_BEGIN_DECLS
 
 typedef struct
 {
-    GObject parent_instance;
+    GObject parent_instance;// 管理对象的生命周期
 } User;
 
 typedef struct

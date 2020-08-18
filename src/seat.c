@@ -98,8 +98,7 @@ free_seat_module (gpointer data)
     g_free (module);
 }
 
-void
-seat_register_module (const gchar *name, GType type)
+void seat_register_module(const gchar *name, GType type)
 {
     if (!seat_modules)
         seat_modules = g_hash_table_new_full (g_str_hash, g_str_equal, free_seat_module, NULL);
@@ -136,8 +135,7 @@ seat_set_name (Seat *seat, const gchar *name)
     priv->name = g_strdup (name);
 }
 
-void
-seat_set_property (Seat *seat, const gchar *name, const gchar *value)
+void seat_set_property(Seat *seat, const gchar *name, const gchar *value)
 {
     SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_if_fail (seat != NULL);
@@ -207,8 +205,14 @@ seat_set_share_display_server (Seat *seat, gboolean share_display_server)
     priv->share_display_server = share_display_server;
 }
 
-gboolean
-seat_start (Seat *seat)
+/**
+ * @brief seat_start
+ * 获取Seat关联的 SeatClass 对象的setup成员变量和start成员变量。
+ * 这2个成员变量都是函数指针，setup指向的方法是 seat_local_setup，此函数什么事都没做。
+ * start指向了 seat_local_start 函数首先读取自动登录配置，如果没有自动登录或者登录失败则启动greeter会话。
+ * @param Seat*
+ */
+gboolean seat_start(Seat *seat)
 {
     SeatPrivate *priv = seat_get_instance_private (seat);
 
@@ -1227,6 +1231,20 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     return TRUE;
 }
 
+/**
+ * @brief create_greeter_session
+ * 函数实现了启动greeter会话，会话就是Session。此Session是GreeterSession类型，关联了GreeterSessionClass类型。
+ * 此函数获取seat对象的create_greeter_session成员变量。
+ *
+ * 特别需要注意的是，SeatClass的成员变量与seat.c定义的create_greeter_session不是同一个东西，它是一个函数指针，但本身是变量，不是函数。
+ * 对于LightDM默认的Seat类型，它指向了seat_local_create_greeter_session函数。
+ * 这个方法得到了父类型的create_greeter_session成员，实际上调用了seat_real_create_greeter_session方法。接下来又调用了greeter_session_new方法。
+ * 这个方法返回了一个GreeterSession类型的对象指针。这就是Session，它的start成员变量也是个函数指针，指向了greeter_session_start方法。
+ *
+ * seat对象create_greeter_session成员变量指向的函数创建了greeter_session。
+ * 此方法监听了greeter_session的SESSION_SIGNAL_AUTHENTICATION_COMPLETE信号。当用户单次登录操作完成时触发此信号。
+ * 同时继续监听GREETER_SIGNAL_CREATE_SESSION信号和GREETER_SIGNAL_START_SESSION信号，分别由greeter_create_session_cb和greeter_start_session_cb函数处理。
+ */
 static GreeterSession *
 create_greeter_session (Seat *seat)
 {
@@ -1675,6 +1693,12 @@ seat_real_setup (Seat *seat)
 {
 }
 
+/**
+ * @brief seat_real_start
+ * 函数得到greeter_session后调用create_display_server方法。
+ * create_display_server找到Seat对象上的create_display_server成员变量。
+ * 这个成员变量是个函数指针，调用create_display_server指向的函数得到display_server
+ */
 static gboolean
 seat_real_start (Seat *seat)
 {

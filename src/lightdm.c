@@ -98,19 +98,19 @@ log_cb (const gchar *log_domain, GLogLevelFlags log_level, const gchar *message,
         g_log_default_handler (log_domain, log_level, message, data);
 }
 
-static void
-log_init (void)
+static void log_init (void)
 {
     log_timer = g_timer_new ();
 
-    /* Log to a file */
-    g_autofree gchar *log_dir = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    g_autofree gchar *path = g_build_filename (log_dir, "lightdm.log", NULL);
+    /* 读取/etc/lightdm/lightdm.conf    [LightDM]   log-directory，返回配置文件中写的日志记录路径 */
+    g_autofree gchar *log_dir = config_get_string(config_get_instance(), "LightDM", "log-directory");
+    g_autofree gchar *path = g_build_filename(log_dir, "lightdm.log", NULL);
 
-    gboolean backup_logs = config_get_boolean (config_get_instance (), "LightDM", "backup-logs");
-    log_fd = log_file_open (path, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
-    fcntl (log_fd, F_SETFD, FD_CLOEXEC);
-    g_log_set_default_handler (log_cb, NULL);
+    /* 读取/etc/lightdm/lightdm.conf    [LightDM]   backup-logs，如果返回ture，打开日志文件前先将旧文件重命名为*.old */
+    gboolean backup_logs = config_get_boolean(config_get_instance(), "LightDM", "backup-logs");
+    log_fd = log_file_open(path, backup_logs ? LOG_MODE_BACKUP_AND_TRUNCATE : LOG_MODE_APPEND);
+    fcntl(log_fd, F_SETFD, FD_CLOEXEC);
+    g_log_set_default_handler(log_cb, NULL);
 
     g_debug ("Logging to %s", path);
 }
@@ -174,15 +174,24 @@ signal_cb (Process *process, int signum)
     }
 }
 
-static void
-display_manager_stopped_cb (DisplayManager *display_manager)
+/**
+ * @brief display_manager_stopped_cb
+ * 监听 DisplayManager 的 DISPLAY_MANAGER_SIGNAL_STOPPED 信号；
+ * 此信号用于停止 DisplayManager 的信息；
+ * 调用 g_main_loop_quit 中断主程序loop循环，将程序正常退出。
+ * @param DisplayManager*
+ */
+static void display_manager_stopped_cb(DisplayManager *display_manager)
 {
     g_debug ("Stopping daemon");
     g_main_loop_quit (loop);
 }
 
-static Seat *
-create_seat (const gchar *module_name, const gchar *name)
+/**
+ * @brief create_seat
+ * 创建seat，成功返回seat，失败返回NULL
+ */
+static Seat *create_seat(const gchar *module_name, const gchar *name)
 {
     if (strcmp (module_name, "xlocal") == 0) {
         g_warning ("Seat type 'xlocal' is deprecated, use 'type=local' instead");
@@ -197,8 +206,12 @@ create_seat (const gchar *module_name, const gchar *name)
     return seat;
 }
 
-static Seat *
-service_add_xlocal_seat_cb (DisplayManagerService *service, gint display_number)
+/**
+ * @brief service_add_xlocal_seat_cb
+ * 函数监听 DISPLAY_MANAGER_SERVICE_SIGNAL_ADD_XLOCAL_SEAT 信号，此信号由用户登录成功触发，此监听函数准备专属于此用户的D-Bus服务。
+ * @return Seat *
+ */
+static Seat *service_add_xlocal_seat_cb(DisplayManagerService *service, gint display_number)
 {
     g_debug ("Adding local X seat :%d", display_number);
 
@@ -216,11 +229,16 @@ service_add_xlocal_seat_cb (DisplayManagerService *service, gint display_number)
     return g_steal_pointer (&seat);
 }
 
-static void
-display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
+/**
+ * @brief display_manager_seat_removed_cb
+ * 监听 DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED 信号，此信号由用户注销引发。
+ * 监听函数要为下一次登录做准备，如果发生异常（通用由用户注销异常引发），它会停止display_manager的运行，间接引发程序退出。
+ * @param DisplayManager*
+ * @param Seat*
+ */
+static void display_manager_seat_removed_cb(DisplayManager *display_manager, Seat *seat) // zzz
 {
-    /* If we have fallback types registered for the seat, let's try them
-       before giving up. */
+    /* If we have fallback types registered for the seat, let's try them before giving up. */
     g_auto(GStrv) types = seat_get_string_list_property (seat, "type");
     g_autoptr(GString) next_types = g_string_new ("");
     g_autoptr(Seat) next_seat = NULL;
@@ -262,8 +280,7 @@ display_manager_seat_removed_cb (DisplayManager *display_manager, Seat *seat)
     }
 }
 
-static gboolean
-xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
+static gboolean xdmcp_session_cb(XDMCPServer *server, XDMCPSession *session)
 {
     g_autoptr(SeatXDMCPSession) seat = seat_xdmcp_session_new (session);
 
@@ -275,8 +292,7 @@ xdmcp_session_cb (XDMCPServer *server, XDMCPSession *session)
     return display_manager_add_seat (display_manager, SEAT (seat));
 }
 
-static void
-vnc_connection_cb (VNCServer *server, GSocket *connection)
+static void vnc_connection_cb(VNCServer *server, GSocket *connection)
 {
     g_autoptr(SeatXVNC) seat = seat_xvnc_new (connection);
 
@@ -288,8 +304,11 @@ vnc_connection_cb (VNCServer *server, GSocket *connection)
     display_manager_add_seat (display_manager, SEAT (seat));
 }
 
-static void
-start_display_manager (void)
+/**
+ * @brief start_display_manager
+ * 此函数会检测用户是否启用了 XDMCPServer 服务、VNCServer 服务，如果启用了就会把这些服务启动。
+ */
+static void start_display_manager(void)
 {
     display_manager_start (display_manager);
 
@@ -370,20 +389,32 @@ start_display_manager (void)
             g_warning ("Can't start VNC server, Xvnc is not in the path");
     }
 }
-static void
-service_ready_cb (DisplayManagerService *service)
+
+/**
+ * @brief service_ready_cb
+ * 函数监听 DISPLAY_MANAGER_SERVICE_SIGNAL_READY 信号。此信号在专属于此用户的的 D-Bus 服务准备就绪后触发
+ * @return void
+ */
+static void service_ready_cb(DisplayManagerService *service)
 {
     start_display_manager ();
 }
 
-static void
-service_name_lost_cb (DisplayManagerService *service)
+/**
+ * @brief service_name_lost_cb
+ * 函数监听 DISPLAY_MANAGER_SERVICE_SIGNAL_NAME_LOST 信号。
+ * 此监听函数会在不正常停止 display_manager 的运行的情况下直接将程序退出，而且没有输出日志，需要关注。
+ */
+static void service_name_lost_cb(DisplayManagerService *service)
 {
     exit (EXIT_FAILURE);
 }
 
-static gboolean
-add_login1_seat (Login1Seat *login1_seat)
+/**
+ * @brief add_login1_seat
+ * 执行的是有显示资源却还未分配的 Login1Seat 。此时产生 LightDM 管理的 Seat。随后调用 display_manager_add_seat 方法。
+ */
+static gboolean add_login1_seat(Login1Seat *login1_seat)
 {
     const gchar *seat_name = login1_seat_get_id (login1_seat);
     g_debug ("New seat added from logind: %s", seat_name);
@@ -431,23 +462,20 @@ add_login1_seat (Login1Seat *login1_seat)
     return started;
 }
 
-static void
-remove_login1_seat (Login1Seat *login1_seat)
+static void remove_login1_seat(Login1Seat *login1_seat)
 {
     Seat *seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
     if (seat)
         seat_stop (seat);
 }
 
-static void
-seat_stopped_cb (Seat *seat, Login1Seat *login1_seat)
+static void seat_stopped_cb(Seat *seat, Login1Seat *login1_seat)
 {
     update_login1_seat (login1_seat);
     g_signal_handlers_disconnect_matched (seat, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, login1_seat);
 }
 
-static gboolean
-update_login1_seat (Login1Seat *login1_seat)
+static gboolean update_login1_seat(Login1Seat *login1_seat)
 {
     if (!config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical") ||
         login1_seat_get_can_graphical (login1_seat))
@@ -470,8 +498,7 @@ update_login1_seat (Login1Seat *login1_seat)
     }
 }
 
-static void
-login1_can_graphical_changed_cb (Login1Seat *login1_seat)
+static void login1_can_graphical_changed_cb(Login1Seat *login1_seat)
 {
     g_debug ("Seat %s changes graphical state to %s", login1_seat_get_id (login1_seat), login1_seat_get_can_graphical (login1_seat) ? "true" : "false");
     update_login1_seat (login1_seat);
@@ -505,8 +532,7 @@ login1_active_session_changed_cb (Login1Seat *login1_seat, const gchar *login1_s
     }
 }
 
-static gboolean
-login1_add_seat (Login1Seat *login1_seat)
+static gboolean login1_add_seat(Login1Seat *login1_seat)
 {
     if (config_get_boolean (config_get_instance (), "LightDM", "logind-check-graphical"))
         g_signal_connect (login1_seat, "can-graphical-changed", G_CALLBACK (login1_can_graphical_changed_cb), NULL);
@@ -516,8 +542,11 @@ login1_add_seat (Login1Seat *login1_seat)
     return update_login1_seat (login1_seat);
 }
 
-static void
-login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
+/**
+ * @brief login1_service_seat_added_cb
+ * 函数监听LOGIN1_SERVICE_SIGNAL_SEAT_ADDED信号，此信号由用户登录成功触发
+ */
+static void login1_service_seat_added_cb(Login1Service *service, Login1Seat *login1_seat)
 {
     if (login1_seat_get_can_graphical (login1_seat))
         g_debug ("Seat %s added from logind", login1_seat_get_id (login1_seat));
@@ -527,8 +556,11 @@ login1_service_seat_added_cb (Login1Service *service, Login1Seat *login1_seat)
     login1_add_seat (login1_seat);
 }
 
-static void
-login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
+/**
+ * @brief login1_service_seat_removed_cb
+ * 函数监听 LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED 信号，此信号由用户注销触发。
+ */
+static void login1_service_seat_removed_cb(Login1Service *service, Login1Seat *login1_seat)
 {
     g_debug ("Seat %s removed from logind", login1_seat_get_id (login1_seat));
     g_signal_handlers_disconnect_matched (login1_seat, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, login1_can_graphical_changed_cb, NULL);
@@ -536,8 +568,10 @@ login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
     remove_login1_seat (login1_seat);
 }
 
-int
-main (int argc, char **argv)
+/**
+ * @brief main
+ */
+int main(int argc, char **argv)
 {
     /* Disable the SIGPIPE handler - this is a stupid Unix hangover behaviour.
      * We will handle pipes / sockets being closed instead of having the whole daemon be killed...
@@ -558,7 +592,7 @@ main (int argc, char **argv)
 #if !defined(GLIB_VERSION_2_36)
     g_type_init ();
 #endif
-    loop = g_main_loop_new (NULL, FALSE);
+    loop = g_main_loop_new(NULL, FALSE); // 创建一个 loop 类似汇编里的 loop
 
     GList *messages = g_list_append (NULL, g_strdup_printf ("Starting Light Display Manager %s, UID=%i PID=%i", VERSION, getuid (), getpid ()));
 
@@ -721,29 +755,29 @@ main (int argc, char **argv)
         fclose (pid_file);
     }
 
-    /* If not running as root write output to directories we control */
+    /* If not running as root, write output to directories we control */
     g_autofree gchar *default_log_dir = NULL;
     g_autofree gchar *default_run_dir = NULL;
     g_autofree gchar *default_cache_dir = NULL;
-    if (getuid () != 0)
+    if (getuid() != 0) // 普通用户，设置默认路径
     {
         default_log_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "log", NULL);
         default_run_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "run", NULL);
         default_cache_dir = g_build_filename (g_get_user_cache_dir (), "lightdm", "cache", NULL);
     }
-    else
+    else // root用户,设置默认路径
     {
         default_log_dir = g_strdup (LOG_DIR);
         default_run_dir = g_strdup (RUN_DIR);
         default_cache_dir = g_strdup (CACHE_DIR);
     }
 
-    /* Load config file(s) */
+    /* Load config file(s) 加载配置文件，失败直接退出返回 1 */
     if (!config_load_from_standard_locations (config_get_instance (), config_path, &messages))
         exit (EXIT_FAILURE);
     g_free (config_path);
 
-    /* Set default values */
+    /* Set default values 设置默认配置 */
     if (!config_has_key (config_get_instance (), "LightDM", "start-default-seat"))
         config_set_boolean (config_get_instance (), "LightDM", "start-default-seat", TRUE);
     if (!config_has_key (config_get_instance (), "LightDM", "minimum-vt"))
@@ -813,7 +847,7 @@ main (int argc, char **argv)
     if (!config_has_key (config_get_instance (), "XDMCPServer", "hostname"))
         config_set_string (config_get_instance (), "XDMCPServer", "hostname", g_get_host_name ());
 
-    /* Override defaults */
+    /* Override defaults 重新设置默认路径 */
     if (log_dir)
         config_set_string (config_get_instance (), "LightDM", "log-directory", log_dir);
     g_free (log_dir);
@@ -824,36 +858,37 @@ main (int argc, char **argv)
         config_set_string (config_get_instance (), "LightDM", "cache-directory", cache_dir);
     g_free (cache_dir);
 
-    /* Create run and cache directories */
-    g_autofree gchar *log_dir_path = config_get_string (config_get_instance (), "LightDM", "log-directory");
-    if (g_mkdir_with_parents (log_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make log directory %s: %s", log_dir_path, strerror (errno));
-    g_autofree gchar *run_dir_path = config_get_string (config_get_instance (), "LightDM", "run-directory");
-    if (g_mkdir_with_parents (run_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make run directory %s: %s", run_dir_path, strerror (errno));
-    g_autofree gchar *cache_dir_path = config_get_string (config_get_instance (), "LightDM", "cache-directory");
-    if (g_mkdir_with_parents (cache_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
-        g_warning ("Failed to make cache directory %s: %s", cache_dir_path, strerror (errno));
+    /* Create run and cache directories 创建文件夹 */
+    g_autofree gchar *log_dir_path = config_get_string(config_get_instance(), "LightDM", "log-directory");
+    if (g_mkdir_with_parents(log_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning("Failed to make log directory %s: %s", log_dir_path, strerror(errno));
+    g_autofree gchar *run_dir_path = config_get_string(config_get_instance(), "LightDM", "run-directory");
+    if (g_mkdir_with_parents(run_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning("Failed to make run directory %s: %s", run_dir_path, strerror(errno));
+    g_autofree gchar *cache_dir_path = config_get_string(config_get_instance(), "LightDM", "cache-directory");
+    if (g_mkdir_with_parents(cache_dir_path, S_IRWXU | S_IXGRP | S_IXOTH) < 0)
+        g_warning("Failed to make cache directory %s: %s", cache_dir_path, strerror(errno));
 
-    log_init ();
+    log_init(); // 初始化日志记录，应该是从这开始   start
 
-    /* Show queued messages once logging is complete */
+    /* 日志文件创建好后，记录消息队列 */
     for (GList *link = messages; link; link = link->next)
-        g_debug ("%s", (gchar *)link->data);
-    g_list_free_full (messages, g_free);
+        g_debug("%s", (gchar *)link->data);
+    g_list_free_full(messages, g_free); // 释放messages链表？
 
-    if (getuid () != 0)
+    if (getuid() != 0) // 普通用户的 uid！=0，root用户的 uid=0
         g_debug ("Running in user mode");
     if (getenv ("DISPLAY"))
         g_debug ("Using Xephyr for X servers");
 
-    display_manager = display_manager_new ();
+    display_manager = display_manager_new(); // 创建显示管理器
     g_signal_connect (display_manager, DISPLAY_MANAGER_SIGNAL_STOPPED, G_CALLBACK (display_manager_stopped_cb), NULL);
     g_signal_connect (display_manager, DISPLAY_MANAGER_SIGNAL_SEAT_REMOVED, G_CALLBACK (display_manager_seat_removed_cb), NULL);
 
-    if (config_get_boolean (config_get_instance (), "LightDM", "dbus-service"))
+    /* 读取/etc/lightdm/lightdm.conf    [LightDM]    dbus-service = True if LightDM provides a D-Bus servce to control it */
+    if (config_get_boolean(config_get_instance(), "LightDM", "dbus-service"))
     {
-        display_manager_service = display_manager_service_new (display_manager);
+        display_manager_service = display_manager_service_new(display_manager); // 创建一个 display_manager_service
         g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_ADD_XLOCAL_SEAT, G_CALLBACK (service_add_xlocal_seat_cb), NULL);
         g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_READY, G_CALLBACK (service_ready_cb), NULL);
         g_signal_connect (display_manager_service, DISPLAY_MANAGER_SERVICE_SIGNAL_NAME_LOST, G_CALLBACK (service_name_lost_cb), NULL);
@@ -862,7 +897,7 @@ main (int argc, char **argv)
     else
         start_display_manager ();
 
-    shared_data_manager_start (shared_data_manager_get_instance ());
+    shared_data_manager_start(shared_data_manager_get_instance()); // 监视/home路径下的用户目录，如果用户目录被删除，同步删除用户
 
     /* Connect to logind */
     if (login1_service_connect (login1_service_get_instance ()))
@@ -870,7 +905,8 @@ main (int argc, char **argv)
         /* Load dynamic seats from logind */
         g_debug ("Monitoring logind for seats");
 
-        if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+        /* 读取/etc/lightdm/lightdm.conf    [LightDM]   start-default-seat = True to always start one seat if none are defined in the configuration */
+        if (config_get_boolean(config_get_instance(), "LightDM", "start-default-seat"))
         {
             g_signal_connect (login1_service_get_instance (), LOGIN1_SERVICE_SIGNAL_SEAT_ADDED, G_CALLBACK (login1_service_seat_added_cb), NULL);
             g_signal_connect (login1_service_get_instance (), LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED, G_CALLBACK (login1_service_seat_removed_cb), NULL);
@@ -885,12 +921,16 @@ main (int argc, char **argv)
     }
     else
     {
-        if (config_get_boolean (config_get_instance (), "LightDM", "start-default-seat"))
+        /* 读取/etc/lightdm/lightdm.conf    [LightDM]   start-default-seat true */
+        if (config_get_boolean(config_get_instance(), "LightDM", "start-default-seat"))
         {
             g_debug ("Adding default seat");
 
-            g_auto(GStrv) types = config_get_string_list (config_get_instance (), "Seat:*", "type");
+            /* 读取/etc/lightdm/lightdm.conf    [Seat*]   type = Seat type (local, xremote, unity) */
+            g_auto(GStrv) types = config_get_string_list(config_get_instance(), "Seat:*", "type");
             g_autoptr(Seat) seat = NULL;
+
+            /* 遍历types，调用create_seat，如果seat不为空退出 */
             for (gchar **type = types; type && *type; type++)
             {
                 seat = create_seat (*type, "seat0");
@@ -899,9 +939,11 @@ main (int argc, char **argv)
             }
             if (seat)
             {
-                set_seat_properties (seat, NULL);
-                seat_set_property (seat, "exit-on-failure", "true");
-                if (!display_manager_add_seat (display_manager, seat))
+                /* 执行 display_manager_add_seat 函数，注册 seat 提供登录服务 */
+                set_seat_properties(seat, NULL);
+                seat_set_property(seat, "exit-on-failure", "true");
+                /* 如果注册seat失败就直接退出程序。此过程没有输出日志，需要关注 */
+                if (!display_manager_add_seat(display_manager, seat))
                     return EXIT_FAILURE;
             }
             else
@@ -912,7 +954,8 @@ main (int argc, char **argv)
         }
     }
 
-    g_main_loop_run (loop);
+    /* 此函数的主要作用是内存驻留 */
+    g_main_loop_run(loop);
 
     /* Clean up shared data manager */
     shared_data_manager_cleanup ();

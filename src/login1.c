@@ -26,19 +26,23 @@ enum {
 };
 static guint service_signals[LAST_SERVICE_SIGNAL] = { 0 };
 
+/**
+ * @brief Login1ServicePrivate
+ * SharedDataManager的封装，保护私有数据
+ */
 typedef struct
 {
     /* Connection to bus service is running on */
-    GDBusConnection *connection;
+    GDBusConnection *connection; // 用于访问org.freedesktop.login1服务
 
     /* TRUE if have connected to service */
-    gboolean connected;
+    gboolean connected; // 指示connection是否已经连接
 
     /* Seats the service is reporting */
-    GList *seats;
+    GList *seats; // 当前机器上的用户席位列表，与用户一一对应
 
     /* Handle to signal subscription */
-    guint signal_id;
+    guint signal_id; // 指示监听的信号
 } Login1ServicePrivate;
 
 enum {
@@ -245,8 +249,12 @@ signal_cb (GDBusConnection *connection,
     }
 }
 
-gboolean
-login1_service_connect (Login1Service *service)
+/**
+ * @brief login1_service_connect
+ * 获取 Login1Service 的单例模式，调用 g_bus_get_sync 连接系统 D-Bus，连上 org.freedesktop.login1，立即请求 ListSeats 服务，返回结果保存到用户列表。
+ * @param Login1Service*
+ */
+gboolean login1_service_connect(Login1Service *service)
 {
     Login1ServicePrivate *priv = login1_service_get_instance_private (service);
 
@@ -309,6 +317,11 @@ login1_service_get_is_connected (Login1Service *service)
     return priv->connected;
 }
 
+/**
+ * @brief login1_service_get_seats
+ * 遍历Login1Seat列表，对每个Login1Seat都调用login1_add_seat方法调用display_manager_get_seat方法判断是否已经给此Seat分配了显示资源。
+ * 如果没有则调用add_login1_seat方法。如果发现此Login1Seat不具有显示资源的权限则调用remove_login1_seat方法，把它移除。
+ */
 GList *
 login1_service_get_seats (Login1Service *service)
 {

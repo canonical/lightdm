@@ -23,7 +23,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 typedef struct
 {
     /* Display manager being exposed on D-Bus */
-    DisplayManager *manager;
+    DisplayManager *manager; // 在D-Bus上暴露的DisplayManager服务
 
     /* Bus connected to */
     GDBusConnection *bus;
@@ -40,11 +40,11 @@ typedef struct
 
     /* Next index to use for seat / session entries */
     guint seat_index;
-    guint session_index;
+    guint session_index; // 会话索引，也就是加到Seat字符串后面的数字
 
     /* Bus entries for seats / session */
-    GHashTable *seat_bus_entries;
-    GHashTable *session_bus_entries;
+    GHashTable *seat_bus_entries;    // 用户与D-Bus服务的映射
+    GHashTable *session_bus_entries; // 会话与D-Bus服务的映射
 } DisplayManagerServicePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (DisplayManagerService, display_manager_service, G_TYPE_OBJECT)
@@ -67,8 +67,12 @@ typedef struct
 
 #define LIGHTDM_BUS_NAME "org.freedesktop.DisplayManager"
 
-DisplayManagerService *
-display_manager_service_new (DisplayManager *manager)
+/**
+ * @brief display_manager_service_new
+ * 创建 display_manager_service 服务，此函数的主要作用是在C开发环境模拟单例模式。
+ * @return DisplayManagerService *
+ */
+DisplayManagerService *display_manager_service_new(DisplayManager *manager)
 {
     DisplayManagerService *service = g_object_new (DISPLAY_MANAGER_SERVICE_TYPE, NULL);
     DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
@@ -645,8 +649,12 @@ name_lost_cb (GDBusConnection *connection,
     g_signal_emit (service, signals[NAME_LOST], 0);
 }
 
-void
-display_manager_service_start (DisplayManagerService *service)
+/**
+ * @brief display_manager_service_start
+ * 启动DisplayManager的D-Bus服务，如果启动身份是root则注册到System Bus，否则注册到Session Bus
+ * @param DisplayManagerService*
+ */
+void display_manager_service_start(DisplayManagerService *service)
 {
     DisplayManagerServicePrivate *priv = display_manager_service_get_instance_private (service);
 

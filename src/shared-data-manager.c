@@ -23,9 +23,9 @@
 
 typedef struct
 {
-    gchar *greeter_user;
-    guint32 greeter_gid;
-    GHashTable *starting_dirs;
+    gchar *greeter_user;       // 登录用户名
+    guint32 greeter_gid;       // 登录用户组ID
+    GHashTable *starting_dirs; //
 } SharedDataManagerPrivate;
 
 struct OwnerInfo
@@ -46,8 +46,11 @@ shared_data_manager_get_instance (void)
     return singleton;
 }
 
-void
-shared_data_manager_cleanup (void)
+/**
+ * @brief shared_data_manager_cleanup
+ * 清理用户列表，断开D-Bus连接
+ */
+void shared_data_manager_cleanup(void)
 {
     g_clear_object (&singleton);
 }
@@ -191,8 +194,13 @@ user_removed_cb (CommonUserList *list, CommonUser *user, SharedDataManager *mana
     delete_unused_user ((gpointer) common_user_get_name (user), NULL, manager);
 }
 
-void
-shared_data_manager_start (SharedDataManager *manager)
+/**
+ * @brief shared_data_manager_start
+ * 监视/home路径下的用户目录，如果用户目录被删除，自动执行删除用户的操作。
+ * 此函数会遍历home目录，监听子目录的删除事件，如果发生删除事件就引发 USER_LIST_SIGNAL_USER_REMOVED信号，执行user_removed_cb监听函数，监听函数进一步执行删除用户操作。
+ * @param SharedDataManager*
+ */
+void shared_data_manager_start(SharedDataManager *manager)
 {
     /* Grab list of all current directories, so we know if any exist that we no longer need. */
     g_autoptr(GFile) file = g_file_new_for_path (USERS_DIR);

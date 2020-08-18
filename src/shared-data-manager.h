@@ -25,7 +25,7 @@ G_BEGIN_DECLS
 
 struct SharedDataManager
 {
-    GObject parent_instance;
+    GObject parent_instance; // 管理对象的生命周期
 };
 
 typedef struct

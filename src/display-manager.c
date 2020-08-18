@@ -32,32 +32,34 @@ static guint signals[LAST_SIGNAL] = { 0 };
 typedef struct
 {
     /* The seats available */
-    GList *seats;
+    GList *seats; // 管理登录的用户会话列表
 
     /* TRUE if stopping the display manager (waiting for seats to stop) */
-    gboolean stopping;
+    gboolean stopping; // TRUE 代表正在停止会话，等待seats停止
 
     /* TRUE if stopped */
-    gboolean stopped;
+    gboolean stopped; // TRUE 代表会话已停止
 } DisplayManagerPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (DisplayManager, display_manager, G_TYPE_OBJECT)
 
-DisplayManager *
-display_manager_new (void)
+/**
+ * @brief display_manager_new
+ * 初始化display_manager，此函数的主要作用是在C开发环境模拟单例模式。
+ * @return DisplayManager *
+ */
+DisplayManager *display_manager_new(void)
 {
     return g_object_new (DISPLAY_MANAGER_TYPE, NULL);
 }
 
-GList *
-display_manager_get_seats (DisplayManager *manager)
+GList *display_manager_get_seats(DisplayManager *manager)
 {
     DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
     return priv->seats;
 }
 
-Seat *
-display_manager_get_seat (DisplayManager *manager, const gchar *name)
+Seat *display_manager_get_seat(DisplayManager *manager, const gchar *name)
 {
     DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
 
@@ -72,8 +74,7 @@ display_manager_get_seat (DisplayManager *manager, const gchar *name)
     return NULL;
 }
 
-static void
-check_stopped (DisplayManager *manager)
+static void check_stopped(DisplayManager *manager)
 {
     DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
 
@@ -87,8 +88,7 @@ check_stopped (DisplayManager *manager)
     }
 }
 
-static void
-seat_stopped_cb (Seat *seat, DisplayManager *manager)
+static void seat_stopped_cb(Seat *seat, DisplayManager *manager)
 {
     DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
 
@@ -103,15 +103,19 @@ seat_stopped_cb (Seat *seat, DisplayManager *manager)
     check_stopped (manager);
 }
 
-gboolean
-display_manager_add_seat (DisplayManager *manager, Seat *seat)
+/**
+ * @brief display_manager_add_seat
+ * 调用了 seat_start 方法，并触发了 DISPLAY_MANAGER_SIGNAL_SEAT_ADDED 信号。
+ * 订阅此信号的是 dispmay-manager-service，它是 org.freedesktop.DisplayManager 这个系统 D-Bus 服务的实现。
+ */
+gboolean display_manager_add_seat(DisplayManager *manager, Seat *seat)
 {
     DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
 
     g_return_val_if_fail (!priv->stopping, FALSE);
 
     gboolean result = seat_start (SEAT (seat));
-    if (!result)
+    if (!result) // seat start failed, return false
         return FALSE;
 
     priv->seats = g_list_append (priv->seats, g_object_ref (seat));
@@ -121,8 +125,10 @@ display_manager_add_seat (DisplayManager *manager, Seat *seat)
     return TRUE;
 }
 
-void
-display_manager_start (DisplayManager *manager)
+/**
+ * @brief display_manager_start
+ */
+void display_manager_start(DisplayManager *manager)
 {
     g_return_if_fail (manager != NULL);
 
@@ -134,8 +140,10 @@ display_manager_start (DisplayManager *manager)
     }
 }
 
-void
-display_manager_stop (DisplayManager *manager)
+/**
+ * @brief display_manager_stop
+ */
+void display_manager_stop(DisplayManager *manager)
 {
     DisplayManagerPrivate *priv = display_manager_get_instance_private (manager);
 
@@ -160,16 +168,22 @@ display_manager_stop (DisplayManager *manager)
     check_stopped (manager);
 }
 
-static void
-display_manager_init (DisplayManager *manager)
+/**
+ * @brief display_manager_init
+ * 初始化display manager，没被调用
+ */
+static void display_manager_init(DisplayManager *manager)
 {
     /* Load the seat modules */
     seat_register_module ("local", SEAT_LOCAL_TYPE);
     seat_register_module ("xremote", SEAT_XREMOTE_TYPE);
 }
 
-static void
-display_manager_finalize (GObject *object)
+/**
+ * @brief display_manager_finalize
+ * 不重要
+ */
+static void display_manager_finalize(GObject *object)
 {
     DisplayManager *self = DISPLAY_MANAGER (object);
     DisplayManagerPrivate *priv = display_manager_get_instance_private (self);
@@ -184,8 +198,11 @@ display_manager_finalize (GObject *object)
     G_OBJECT_CLASS (display_manager_parent_class)->finalize (object);
 }
 
-static void
-display_manager_class_init (DisplayManagerClass *klass)
+/**
+ * @brief display_manager_class_init
+ * 初始化display manager class，没被调用
+ */
+static void display_manager_class_init(DisplayManagerClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 

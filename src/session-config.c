@@ -17,10 +17,10 @@ typedef struct
     gchar *session_type;
 
     /* Desktop names */
-    gchar **desktop_names;
+    gchar **desktop_names; // 桌面环境列表，比如XFCE、LCDE等等
 
     /* Command to run */
-    gchar *command;
+    gchar *command; // 目标greeter可执行文件路径以及参数
 
     /* TRUE if can run a greeter inside the session */
     gboolean allow_greeter;
