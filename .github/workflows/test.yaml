@@ -1,0 +1,40 @@
+name: Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        image:
+          - ubuntu:rolling
+          - fedora:latest
+
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies (Ubuntu)
+        if: startsWith(matrix.image, 'ubuntu:')
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gtk-doc-tools intltool libaudit-dev libgcrypt20-dev libgirepository1.0-dev libglib2.0-dev libpam0g-dev libtool libxcb1-dev libxdmcp-dev libxklavier-dev qtbase5-dev valac yelp-tools
+
+      - name: Install dependencies (Fedora)
+        if: startsWith(matrix.image, 'fedora:')
+        run: |
+          dnf install -y audit-libs-devel gcc gcc-c++ gobject-introspection-devel glib2-devel gtk-doc intltool libgcrypt-devel libtool libxcb-devel libxklavier-devel libXdmcp-devel make pam-devel qt5-qtbase-devel redhat-rpm-config vala yelp-tools
+
+      - name: Build
+        run: |
+          ./autogen.sh --disable-silent-rules --enable-gtk-doc
+          make
+
+      - name: Test
+        run: make check
