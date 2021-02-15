@@ -185,8 +185,20 @@ UsersModel::UsersModel(QObject *parent) :
     d_ptr(new UsersModelPrivate(this))
 {
     Q_D(UsersModel);
-    // Extend roleNames (we want to keep the "display" role)
-    QHash<int, QByteArray> roles = roleNames();
+    d->loadUsers();
+
+}
+
+UsersModel::~UsersModel()
+{
+    delete d_ptr;
+}
+
+QHash<int, QByteArray> UsersModel::roleNames() const
+{
+    QHash<int, QByteArray> roles;
+    roles[Qt::DisplayRole] = "display";
+    roles[Qt::DecorationRole] = "decoration";
     roles[NameRole] = "name";
     roles[RealNameRole] = "realName";
     roles[LoggedInRole] = "loggedIn";
@@ -197,16 +209,9 @@ UsersModel::UsersModel(QObject *parent) :
     roles[ImagePathRole] = "imagePath";
     roles[UidRole] = "uid";
     roles[IsLockedRole] = "isLocked";
-    setRoleNames(roles);
-    d->loadUsers();
 
+    return roles;
 }
-
-UsersModel::~UsersModel()
-{
-    delete d_ptr;
-}
-
 
 int UsersModel::rowCount(const QModelIndex &parent) const
 {

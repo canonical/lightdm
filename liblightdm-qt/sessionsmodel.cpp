@@ -90,10 +90,6 @@ SessionsModel::SessionsModel(QObject *parent) :
 {
     Q_D(SessionsModel);
 
-    QHash<int, QByteArray> roles = roleNames();
-    roles[KeyRole] = "key";
-    setRoleNames(roles);
-
     d->loadSessions(SessionsModel::LocalSessions);
 }
 
@@ -103,16 +99,21 @@ SessionsModel::SessionsModel(SessionsModel::SessionType sessionType, QObject *pa
 {
     Q_D(SessionsModel);
 
-    QHash<int, QByteArray> roles = roleNames();
-    roles[KeyRole] = "key";
-    setRoleNames(roles);
-
     d->loadSessions(sessionType);
 }
 
 SessionsModel::~SessionsModel()
 {
     delete d_ptr;
+}
+
+QHash<int, QByteArray> SessionsModel::roleNames() const
+{
+    QHash<int, QByteArray> roles;
+    roles[KeyRole] = "key";
+    roles[Qt::DisplayRole] = "display";
+    roles[Qt::ToolTipRole] = "toolTip";
+    return roles;
 }
 
 int SessionsModel::rowCount(const QModelIndex &parent) const
