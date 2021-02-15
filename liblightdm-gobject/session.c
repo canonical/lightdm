@@ -51,8 +51,6 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE (LightDMSession, lightdm_session, G_TYPE_OBJECT)
 
-#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_SESSION, LightDMSessionPrivate)
-
 static gboolean have_sessions = FALSE;
 static GList *local_sessions = NULL;
 static GList *remote_sessions = NULL;
@@ -60,9 +58,7 @@ static GList *remote_sessions = NULL;
 static gint
 compare_session (gconstpointer a, gconstpointer b)
 {
-    LightDMSessionPrivate *priv_a = GET_PRIVATE (a);
-    LightDMSessionPrivate *priv_b = GET_PRIVATE (b);
-    return strcmp (priv_a->name, priv_b->name);
+    return strcmp (lightdm_session_get_name (LIGHTDM_SESSION (a)), lightdm_session_get_name (LIGHTDM_SESSION (b)));
 }
 
 static LightDMSession *
@@ -97,7 +93,7 @@ load_session (GKeyFile *key_file, const gchar *key, const gchar *default_type)
         type = strdup (default_type);
 
     LightDMSession *session = g_object_new (LIGHTDM_TYPE_SESSION, NULL);
-    LightDMSessionPrivate *priv = GET_PRIVATE (session);
+    LightDMSessionPrivate *priv = lightdm_session_get_instance_private (session);
 
     g_free (priv->key);
     priv->key = g_strdup (key);
@@ -147,9 +143,10 @@ load_sessions_dir (GList *sessions, const gchar *sessions_dir, const gchar *defa
         {
             g_autofree gchar *key = g_strndup (filename, strlen (filename) - strlen (".desktop"));
             LightDMSession *session = load_session (key_file, key, default_type);
+            LightDMSessionPrivate *priv = lightdm_session_get_instance_private (session);
             if (session)
             {
-                g_debug ("Loaded session %s (%s, %s)", path, GET_PRIVATE (session)->name, GET_PRIVATE (session)->comment);
+                g_debug ("Loaded session %s (%s, %s)", path, priv->name, priv->comment);
                 sessions = g_list_insert_sorted (sessions, session, compare_session);
             }
             else
@@ -252,7 +249,9 @@ const gchar *
 lightdm_session_get_key (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
-    return GET_PRIVATE (session)->key;
+
+    LightDMSessionPrivate *priv = lightdm_session_get_instance_private (session);
+    return priv->key;
 }
 
 /**
@@ -267,7 +266,9 @@ const gchar *
 lightdm_session_get_session_type (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
-    return GET_PRIVATE (session)->type;
+
+    LightDMSessionPrivate *priv = lightdm_session_get_instance_private (session);
+    return priv->type;
 }
 
 /**
@@ -282,7 +283,9 @@ const gchar *
 lightdm_session_get_name (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
-    return GET_PRIVATE (session)->name;
+
+    LightDMSessionPrivate *priv = lightdm_session_get_instance_private (session);
+    return priv->name;
 }
 
 /**
@@ -297,7 +300,9 @@ const gchar *
 lightdm_session_get_comment (LightDMSession *session)
 {
     g_return_val_if_fail (LIGHTDM_IS_SESSION (session), NULL);
-    return GET_PRIVATE (session)->comment;
+
+    LightDMSessionPrivate *priv = lightdm_session_get_instance_private (session);
+    return priv->comment;
 }
 
 static void
@@ -342,7 +347,7 @@ static void
 lightdm_session_finalize (GObject *object)
 {
     LightDMSession *self = LIGHTDM_SESSION (object);
-    LightDMSessionPrivate *priv = GET_PRIVATE (self);
+    LightDMSessionPrivate *priv = lightdm_session_get_instance_private (self);
 
     g_free (priv->key);
     g_free (priv->type);

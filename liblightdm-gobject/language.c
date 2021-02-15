@@ -52,8 +52,6 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE (LightDMLanguage, lightdm_language, G_TYPE_OBJECT)
 
-#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_LANGUAGE, LightDMLanguagePrivate)
-
 static gboolean have_languages = FALSE;
 static GList *languages = NULL;
 
@@ -190,7 +188,9 @@ const gchar *
 lightdm_language_get_code (LightDMLanguage *language)
 {
     g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
-    return GET_PRIVATE (language)->code;
+
+    LightDMLanguagePrivate *priv = lightdm_language_get_instance_private (language);
+    return priv->code;
 }
 
 /**
@@ -206,7 +206,7 @@ lightdm_language_get_name (LightDMLanguage *language)
 {
     g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
 
-    LightDMLanguagePrivate *priv = GET_PRIVATE (language);
+    LightDMLanguagePrivate *priv = lightdm_language_get_instance_private (language);
 
     if (!priv->name)
     {
@@ -246,7 +246,7 @@ lightdm_language_get_territory (LightDMLanguage *language)
 {
     g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), NULL);
 
-    LightDMLanguagePrivate *priv = GET_PRIVATE (language);
+    LightDMLanguagePrivate *priv = lightdm_language_get_instance_private (language);
 
     if (!priv->territory && strchr (priv->code, '_'))
     {
@@ -288,7 +288,7 @@ lightdm_language_matches (LightDMLanguage *language, const gchar *code)
     g_return_val_if_fail (LIGHTDM_IS_LANGUAGE (language), FALSE);
     g_return_val_if_fail (code != NULL, FALSE);
 
-    LightDMLanguagePrivate *priv = GET_PRIVATE (language);
+    LightDMLanguagePrivate *priv = lightdm_language_get_instance_private (language);
 
     /* Handle the fact the UTF-8 is specified both as '.utf8' and '.UTF-8' */
     if (is_utf8 (priv->code) && is_utf8 (code))
@@ -314,7 +314,7 @@ lightdm_language_set_property (GObject      *object,
                                GParamSpec   *pspec)
 {
     LightDMLanguage *self = LIGHTDM_LANGUAGE (object);
-    LightDMLanguagePrivate *priv = GET_PRIVATE (self);
+    LightDMLanguagePrivate *priv = lightdm_language_get_instance_private (self);
 
     switch (prop_id) {
     case PROP_CODE:
