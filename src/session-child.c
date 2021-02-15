@@ -130,7 +130,8 @@ pam_conv_cb (int msg_length, const struct pam_message **msg, struct pam_response
     write_string (username);
     gboolean auth_complete = FALSE;
     write_data (&auth_complete, sizeof (auth_complete));
-    write_data (&msg_length, sizeof (msg_length));
+    size_t length = msg_length;
+    write_data (&length, sizeof (length));
     for (int i = 0; i < msg_length; i++)
     {
         const struct pam_message *m = msg[i];

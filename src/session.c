@@ -75,7 +75,7 @@ typedef struct
     gboolean is_interactive;
 
     /* Messages being requested by PAM */
-    int messages_length;
+    size_t messages_length;
     struct pam_message *messages;
 
     /* Authentication result from PAM */
@@ -544,7 +544,7 @@ from_child_cb (GIOChannel *source, GIOCondition condition, gpointer data)
             m->msg = read_string_from_child (session);
         }
 
-        l_debug (session, "Got %d message(s) from PAM", priv->messages_length);
+        l_debug (session, "Got %zi message(s) from PAM", priv->messages_length);
 
         g_signal_emit (G_OBJECT (session), signals[GOT_MESSAGES], 0);
     }
@@ -696,14 +696,14 @@ session_respond (Session *session, struct pam_response *response)
 
     int error = PAM_SUCCESS;
     write_data (session, &error, sizeof (error));
-    for (int i = 0; i < priv->messages_length; i++)
+    for (size_t i = 0; i < priv->messages_length; i++)
     {
         write_string (session, response[i].resp);
         write_data (session, &response[i].resp_retcode, sizeof (response[i].resp_retcode));
     }
 
     /* Delete the old messages */
-    for (int i = 0; i < priv->messages_length; i++)
+    for (size_t i = 0; i < priv->messages_length; i++)
         g_free ((char *) priv->messages[i].msg);
     g_free (priv->messages);
     priv->messages = NULL;
@@ -719,7 +719,7 @@ session_respond_error (Session *session, int error)
     write_data (session, &error, sizeof (error));
 }
 
-int
+size_t
 session_get_messages_length (Session *session)
 {
     SessionPrivate *priv = session_get_instance_private (session);
@@ -1007,7 +1007,7 @@ session_finalize (GObject *object)
     g_clear_pointer (&priv->username, g_free);
     g_clear_object (&priv->user);
     g_clear_pointer (&priv->pam_service, g_free);
-    for (int i = 0; i < priv->messages_length; i++)
+    for (size_t i = 0; i < priv->messages_length; i++)
         g_free ((char *) priv->messages[i].msg);
     g_clear_pointer (&priv->messages, g_free);
     g_clear_pointer (&priv->authentication_result_string, g_free);

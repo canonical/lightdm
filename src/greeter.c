@@ -369,10 +369,10 @@ pam_messages_cb (Session *session, Greeter *greeter)
     GreeterPrivate *priv = greeter_get_instance_private (greeter);
 
     const struct pam_message *messages = session_get_messages (session);
-    int messages_length = session_get_messages_length (session);
+    size_t messages_length = session_get_messages_length (session);
 
     /* Respond to d-bus query with messages */
-    g_debug ("Prompt greeter with %d message(s)", messages_length);
+    g_debug ("Prompt greeter with %zi message(s)", messages_length);
     guint32 size = int_length () + string_length (session_get_username (session)) + int_length ();
     for (int i = 0; i < messages_length; i++)
         size += int_length () + string_length (messages[i].msg);
@@ -645,7 +645,7 @@ handle_continue_authentication (Greeter *greeter, gchar **secrets)
     if (priv->authentication_session == NULL)
         return;
 
-    int messages_length = session_get_messages_length (priv->authentication_session);
+    size_t messages_length = session_get_messages_length (priv->authentication_session);
     const struct pam_message *messages = session_get_messages (priv->authentication_session);
 
     /* Check correct number of responses */
