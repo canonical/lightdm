@@ -168,8 +168,6 @@ typedef struct
 
 G_DEFINE_TYPE_WITH_PRIVATE (LightDMGreeter, lightdm_greeter, G_TYPE_OBJECT)
 
-#define GET_PRIVATE(obj) G_TYPE_INSTANCE_GET_PRIVATE ((obj), LIGHTDM_TYPE_GREETER, LightDMGreeterPrivate)
-
 #define HEADER_SIZE 8
 #define MAX_MESSAGE_LENGTH 1024
 #define API_VERSION 1
@@ -306,7 +304,7 @@ lightdm_greeter_set_resettable (LightDMGreeter *greeter, gboolean resettable)
 {
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_if_fail (!priv->connected);
     priv->resettable = resettable;
@@ -353,7 +351,7 @@ static gboolean
 timed_login_cb (gpointer data)
 {
     LightDMGreeter *greeter = data;
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     priv->autologin_timeout = 0;
     g_signal_emit (G_OBJECT (greeter), signals[AUTOLOGIN_TIMER_EXPIRED], 0);
@@ -466,7 +464,7 @@ get_message_length (guint8 *message, gsize message_length)
 static gboolean
 connect_to_daemon (LightDMGreeter *greeter, GError **error)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     if (priv->to_server_channel || priv->from_server_channel)
         return TRUE;
@@ -512,7 +510,7 @@ connect_to_daemon (LightDMGreeter *greeter, GError **error)
 static gboolean
 send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length, GError **error)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     if (!connect_to_daemon (greeter, error))
         return FALSE;
@@ -566,7 +564,7 @@ send_message (LightDMGreeter *greeter, guint8 *message, gsize message_length, GE
 static void
 handle_connected (LightDMGreeter *greeter, gboolean v2, guint8 *message, gsize message_length, gsize *offset)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
     int timeout;
     Request *request;
 
@@ -625,7 +623,7 @@ handle_connected (LightDMGreeter *greeter, gboolean v2, guint8 *message, gsize m
 static void
 handle_prompt_authentication (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     guint32 sequence_number = read_int (message, message_length, offset);
     if (sequence_number != priv->authenticate_sequence_number)
@@ -686,7 +684,7 @@ handle_prompt_authentication (LightDMGreeter *greeter, guint8 *message, gsize me
 static void
 handle_end_authentication (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     guint32 sequence_number = read_int (message, message_length, offset);
     if (sequence_number != priv->authenticate_sequence_number)
@@ -725,7 +723,7 @@ handle_idle (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsi
 static void
 handle_reset (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_hash_table_remove_all (priv->hints);
 
@@ -746,7 +744,7 @@ handle_reset (LightDMGreeter *greeter, guint8 *message, gsize message_length, gs
 static void
 handle_session_result (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     /* Notify asynchronous caller */
     Request *request = g_list_nth_data (priv->start_session_requests, 0);
@@ -767,7 +765,7 @@ handle_session_result (LightDMGreeter *greeter, guint8 *message, gsize message_l
 static void
 handle_shared_dir_result (LightDMGreeter *greeter, guint8 *message, gsize message_length, gsize *offset)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     /* Notify asynchronous caller */
     Request *request = g_list_nth_data (priv->ensure_shared_data_dir_requests, 0);
@@ -829,7 +827,7 @@ handle_message (LightDMGreeter *greeter, guint8 *message, gsize message_length)
 static gboolean
 recv_message (LightDMGreeter *greeter, gboolean block, guint8 **message, gsize *length, GError **error)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     if (!connect_to_daemon (greeter, error))
         return FALSE;
@@ -980,7 +978,7 @@ lightdm_greeter_connect_to_daemon (LightDMGreeter *greeter, GCancellable *cancel
 {
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     Request *request = request_new (greeter, cancellable, callback, user_data);
     GError *error = NULL;
@@ -1029,7 +1027,7 @@ lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error)
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     /* Read until we are connected */
     if (!send_connect (greeter, priv->resettable, error))
@@ -1078,7 +1076,9 @@ const gchar *
 lightdm_greeter_get_hint (LightDMGreeter *greeter, const gchar *name)
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-    return g_hash_table_lookup (GET_PRIVATE (greeter)->hints, name);
+
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
+    return g_hash_table_lookup (priv->hints, name);
 }
 
 /**
@@ -1301,7 +1301,7 @@ lightdm_greeter_cancel_autologin (LightDMGreeter *greeter)
 {
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     if (priv->autologin_timeout)
        g_source_remove (priv->autologin_timeout);
@@ -1323,7 +1323,7 @@ lightdm_greeter_authenticate (LightDMGreeter *greeter, const gchar *username, GE
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_val_if_fail (priv->connected, FALSE);
 
@@ -1360,7 +1360,7 @@ lightdm_greeter_authenticate_as_guest (LightDMGreeter *greeter, GError **error)
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_val_if_fail (priv->connected, FALSE);
 
@@ -1420,7 +1420,7 @@ lightdm_greeter_authenticate_remote (LightDMGreeter *greeter, const gchar *sessi
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_val_if_fail (priv->connected, FALSE);
 
@@ -1461,7 +1461,7 @@ lightdm_greeter_respond (LightDMGreeter *greeter, const gchar *response, GError 
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
     g_return_val_if_fail (response != NULL, FALSE);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_val_if_fail (priv->connected, FALSE);
     g_return_val_if_fail (priv->n_responses_waiting > 0, FALSE);
@@ -1511,7 +1511,7 @@ lightdm_greeter_cancel_authentication (LightDMGreeter *greeter, GError **error)
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_val_if_fail (priv->connected, FALSE);
 
@@ -1534,7 +1534,9 @@ gboolean
 lightdm_greeter_get_in_authentication (LightDMGreeter *greeter)
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-    return GET_PRIVATE (greeter)->in_authentication;
+
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
+    return priv->in_authentication;
 }
 
 /**
@@ -1549,7 +1551,9 @@ gboolean
 lightdm_greeter_get_is_authenticated (LightDMGreeter *greeter)
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
-    return GET_PRIVATE (greeter)->is_authenticated;
+
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
+    return priv->is_authenticated;
 }
 
 /**
@@ -1564,7 +1568,9 @@ const gchar *
 lightdm_greeter_get_authentication_user (LightDMGreeter *greeter)
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
-    return GET_PRIVATE (greeter)->authentication_user;
+
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
+    return priv->authentication_user;
 }
 
 /**
@@ -1582,7 +1588,7 @@ lightdm_greeter_set_language (LightDMGreeter *greeter, const gchar *language, GE
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_val_if_fail (priv->connected, FALSE);
 
@@ -1612,7 +1618,7 @@ lightdm_greeter_start_session (LightDMGreeter *greeter, const gchar *session, GC
 {
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     Request *request = request_new (greeter, cancellable, callback, user_data);
     priv->start_session_requests = g_list_append (priv->start_session_requests, request);
@@ -1660,7 +1666,7 @@ lightdm_greeter_start_session_sync (LightDMGreeter *greeter, const gchar *sessio
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), FALSE);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_val_if_fail (priv->connected, FALSE);
     g_return_val_if_fail (priv->is_authenticated, FALSE);
@@ -1706,7 +1712,7 @@ lightdm_greeter_ensure_shared_data_dir (LightDMGreeter *greeter, const gchar *us
 {
     g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     Request *request = request_new (greeter, cancellable, callback, user_data);
     priv->ensure_shared_data_dir_requests = g_list_append (priv->ensure_shared_data_dir_requests, request);
@@ -1763,7 +1769,7 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
 {
     g_return_val_if_fail (LIGHTDM_IS_GREETER (greeter), NULL);
 
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_val_if_fail (priv->connected, NULL);
 
@@ -1787,7 +1793,7 @@ lightdm_greeter_ensure_shared_data_dir_sync (LightDMGreeter *greeter, const gcha
 static void
 lightdm_greeter_init (LightDMGreeter *greeter)
 {
-    LightDMGreeterPrivate *priv = GET_PRIVATE (greeter);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     priv->read_buffer = g_malloc (HEADER_SIZE);
     priv->hints = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
@@ -1866,7 +1872,7 @@ static void
 lightdm_greeter_finalize (GObject *object)
 {
     LightDMGreeter *self = LIGHTDM_GREETER (object);
-    LightDMGreeterPrivate *priv = GET_PRIVATE (self);
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (self);
 
     g_clear_object (&priv->socket);
     if (priv->to_server_channel)

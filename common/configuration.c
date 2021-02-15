@@ -321,7 +321,7 @@ config_get_boolean (Configuration *config, const gchar *section, const gchar *ke
 static void
 config_init (Configuration *config)
 {
-    config->priv = G_TYPE_INSTANCE_GET_PRIVATE (config, CONFIGURATION_TYPE, ConfigurationPrivate);
+    config->priv = config_get_instance_private (config);
     config->priv->key_file = g_key_file_new ();
     config->priv->key_sources = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
     config->priv->lightdm_keys = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
