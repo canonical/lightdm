@@ -107,14 +107,7 @@ def request_cb (channel, condition):
     r = '%s LOG-SESSIONS' % greeter_id
     if request == r:
         sessions = LightDM.get_sessions ();
-        def compare_session (a, b):
-            if a.get_key () > b.get_key ():
-                return 1
-            elif a.get_key () < b.get_key ():
-                return -1
-            else:
-                return 0
-        sessions.sort (compare_session)
+        sessions.sort (key = lambda x: x.get_key ())
         for session in sessions:
             status_notify ('%s LOG-SESSION KEY=%s' % (greeter_id, session.get_key ()))
 
