@@ -159,7 +159,6 @@ TESTS = \
 	test-switch-to-greeter-return-session \
 	test-switch-to-greeter-return-session-pam \
 	test-switch-to-greeter-return-session-logout \
-	test-switch-to-greeter-return-session-repeat \
 	test-switch-to-guest \
 	test-switch-to-guest-disabled \
 	test-switch-to-guest-fail-resettable \
@@ -257,6 +256,7 @@ TESTS = \
 	test-invalid-seat \
 	test-seatdefaults-still-supported
 
+#	test-switch-to-greeter-return-session-repeat
 #	test-session-exit-error
 #	test-greeter-no-exit
 #   test-change-password-gobject
