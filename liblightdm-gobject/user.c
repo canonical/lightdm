@@ -746,7 +746,7 @@ lightdm_user_class_init (LightDMUserClass *klass)
                                                           "common-user",
                                                           "Internal user object",
                                                           COMMON_TYPE_USER,
-                                                          G_PARAM_PRIVATE|G_PARAM_CONSTRUCT_ONLY|G_PARAM_WRITABLE));
+                                                          G_PARAM_CONSTRUCT_ONLY|G_PARAM_WRITABLE));
     g_object_class_install_property (object_class,
                                      USER_PROP_NAME,
                                      g_param_spec_string ("name",
