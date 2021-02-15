@@ -33,7 +33,7 @@ status_socket = None
 
 def status_notify (message):
     if status_socket is not None:
-        status_socket.send (struct.pack ('i', len (message)) + message)
+        status_socket.send (struct.pack ('i', len (message)) + message.encode ())
     else:
         sys.stderr.write ('%s\n' % message)
 
@@ -44,7 +44,7 @@ def request_cb (channel, condition):
         return False
     if len (length) > 0:
         (l,) = struct.unpack ('i', length)
-        request = status_socket.recv (l)
+        request = status_socket.recv (l).decode ('utf-8')
 
     r = '%s AUTHENTICATE' % greeter_id
     if request == r:
