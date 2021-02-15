@@ -126,7 +126,7 @@ void session_respond (Session *session, struct pam_response *response);
 
 void session_respond_error (Session *session, int error);
 
-int session_get_messages_length (Session *session);
+size_t session_get_messages_length (Session *session);
 
 const struct pam_message *session_get_messages (Session *session);
 
