@@ -402,7 +402,12 @@ wayland_system_compositor_start (DisplayServer *server)
     fcntl (priv->from_compositor_pipe[0], F_SETFD, FD_CLOEXEC);
 
     /* Listen for messages from the compositor */
+    g_autoptr(GError) from_error = NULL;
     priv->from_compositor_channel = g_io_channel_unix_new (priv->from_compositor_pipe[0]);
+    g_io_channel_set_encoding(priv->from_compositor_channel, /* encoding */ NULL, &from_error);
+    if (from_error)
+        g_warning ("Failed to set encoding on from compositor channel to binary: %s\n", from_error->message);
+
     priv->from_compositor_watch = g_io_add_watch (priv->from_compositor_channel, G_IO_IN | G_IO_HUP, read_cb, compositor);
 
     /* Setup logging */
