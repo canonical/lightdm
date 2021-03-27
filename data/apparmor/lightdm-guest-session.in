@@ -19,6 +19,9 @@
   /usr/bin/sogou-sys-notify ix,
   /tmp/sogou-qimpanel:* rwl,
 
+  # fix for linux mint
+  owner /run/user/[0-9]*/ICEauthority-? l,`
+
   # Allow ibus
   unix (bind, listen) type=stream addr="@tmp/ibus/*",
 
