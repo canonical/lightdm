@@ -33,7 +33,7 @@ x_authority_load (XAuthority *authority, const gchar *filename, GError **error)
 {
     XAuthorityPrivate *priv = x_authority_get_instance_private (authority);
 
-    guint8 *xauth_data;
+    g_autofree guint8 *xauth_data;
     gsize xauth_length;
     if (!g_file_get_contents (filename, (gchar **) &xauth_data, &xauth_length, error))
         return FALSE;
