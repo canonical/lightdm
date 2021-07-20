@@ -239,6 +239,16 @@ audit_event (int type, const gchar *username, uid_t uid, const gchar *remote_hos
 }
 #endif
 
+static void
+signal_termal_handler(int id)
+{
+    g_debug("signal termal callback");
+    if (pam_handle)
+    {
+        pam_end(pam_handle, 0);
+    }
+}
+
 int
 session_child_run (int argc, char **argv)
 {
@@ -324,6 +334,12 @@ session_child_run (int argc, char **argv)
         pam_set_item (pam_handle, PAM_XAUTHDATA, &value);
     }
 #endif
+
+    struct sigaction action;
+    action.sa_handler = &signal_termal_handler;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_RESTART;
+    sigaction(SIGTERM, &action, NULL);
 
     /* Authenticate */
     int authentication_result = PAM_SUCCESS;
