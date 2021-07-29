@@ -320,7 +320,7 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
 
     /* Write records back */
     errno = 0;
-    int output_fd = g_open (filename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    int output_fd = g_open (filename, O_WRONLY | O_CREAT | O_TRUNC , S_IRUSR | S_IWUSR);
     if (output_fd < 0)
     {
         g_set_error (error,
