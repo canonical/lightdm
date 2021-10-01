@@ -8,75 +8,75 @@ msgstr ""
 "Project-Id-Version: lightdm\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2011-08-14 13:45+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2021-10-01 20:05+0200\n"
 "Language-Team: Occitan (post 1500) <oc@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Launchpad-Export-Date: 2013-08-09 05:11+0000\n"
-"X-Generator: Launchpad (build 16723)\n"
+"X-Generator: Poedit 3.0\n"
+"Last-Translator: Quentin PAGÈS\n"
+"Language: oc\n"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:409
 msgid "Are you sure you want to close all programs and restart the computer?"
-msgstr ""
+msgstr "Volètz vertadièrament quitar totes los programas e reaviar l’ordenador ?"
 
 #: ../greeters/gtk/greeter.ui.h:1
 msgid "Cancel"
-msgstr ""
+msgstr "Anullar"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:410
 msgid "Restart"
-msgstr ""
+msgstr "Reaviar"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:434
-msgid ""
-"Are you sure you want to close all programs and shutdown the computer?"
-msgstr ""
+msgid "Are you sure you want to close all programs and shutdown the computer?"
+msgstr "Volètz vertadièrament tampar totes los programas e atudar l’ordenador ?"
 
 #: ../greeters/gtk/lightdm-gtk-greeter.c:435
 msgid "Shutdown"
-msgstr ""
+msgstr "Atudar"
 
 #: ../greeters/gtk/greeter.ui.h:4
 msgid "Large Font"
-msgstr ""
+msgstr "Granda poliça"
 
 #: ../greeters/ldm-gtk-greeter.c:611
 msgid "High Constrast"
-msgstr ""
+msgstr "Contraste elevat"
 
 #: ../greeters/ldm-gtk-greeter.c:615
 msgid "Options"
-msgstr ""
+msgstr "Opcions"
 
 #: ../greeters/ldm-gtk-greeter.c:620
 msgid "Language"
-msgstr ""
+msgstr "Lenga"
 
 #: ../greeters/ldm-gtk-greeter.c:646
 msgid "Keyboard Layout"
-msgstr ""
+msgstr "Agençament del clavièr"
 
 #: ../greeters/ldm-gtk-greeter.c:668
 msgid "Session"
-msgstr ""
+msgstr "Session"
 
 #: ../greeters/gtk/greeter.ui.h:8
 msgid "Suspend"
-msgstr ""
+msgstr "Metre en velha"
 
 #: ../greeters/gtk/greeter.ui.h:2
 msgid "Hibernate"
-msgstr ""
+msgstr "Ivernar"
 
 #: ../greeters/gtk/greeter.ui.h:6
 msgid "Restart..."
-msgstr ""
+msgstr "Reaviada..."
 
 #: ../greeters/gtk/greeter.ui.h:7
 msgid "Shutdown..."
-msgstr ""
+msgstr "Extincion..."
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:100
@@ -85,6 +85,8 @@ msgid ""
 "Usage:\n"
 "  %s - Display Manager"
 msgstr ""
+"Utilizacion :\n"
+"  %s - Display Manager"
 
 #. Description on how to use Light Display Manager displayed on command-line
 #: ../src/lightdm.c:106
@@ -98,3 +100,10 @@ msgid ""
 "  -v, --version                   Show release version\n"
 "  -h, --help                      Show help options"
 msgstr ""
+"Opcions d’ajuda :\n"
+"  -c, --config <file>             Utilizar lo fichièr de configuracion\n"
+"      --pid-file <file>           Fichièr ont escriure los PID\n"
+"  -d, --debug                     Afichar los messatges de desbugatge\n"
+"      --test-mode                 Executar coma utilizaire sens privilègi\n"
+"  -v, --version                   Mostrar la version\n"
+"  -h, --help                     Mostrar las opcions d’ajuda"
