@@ -1,5 +1,5 @@
 name: cla-check
-on: [pull_request]
+on: [pull_request_target]
 
 jobs:
   cla-check:
