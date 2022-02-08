@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/Canonical/lightdm.svg?branch=master)](https://travis-ci.org/Canonical/lightdm)
-
 LightDM is a cross-desktop display manager. A display manager is a daemon that:
 - Runs display servers (e.g. X) where necessary.
 - Runs greeters to allow users to pick which user account and session type to use.
