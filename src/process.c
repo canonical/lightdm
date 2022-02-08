@@ -248,7 +248,13 @@ process_start (Process *process, gboolean block)
             environ = NULL;
 #endif
         for (guint i = 0; i < env_length; i++)
-            setenv (env_keys[i], env_values[i], TRUE);
+        {
+            const gchar *value = env_values[i];
+            if (value != NULL)
+                setenv (env_keys[i], value, TRUE);
+            else
+                unsetenv (env_keys[i]);
+        }
 
         /* Reset SIGPIPE handler so the child has default behaviour (we disabled it at LightDM start) */
         signal (SIGPIPE, SIG_DFL);
