@@ -148,6 +148,7 @@ void
 lightdm_set_layout (LightDMLayout *dmlayout)
 {
     g_return_if_fail (dmlayout != NULL);
+    lightdm_get_layouts();
 
     g_debug ("Setting keyboard layout to '%s'", lightdm_layout_get_name (dmlayout));
 
@@ -155,17 +156,16 @@ lightdm_set_layout (LightDMLayout *dmlayout)
     g_autofree gchar *variant = NULL;
     parse_layout_string (lightdm_layout_get_name (dmlayout), &layout, &variant);
 
-    XklConfigRec *config = xkl_config_rec_new ();
-    config->layouts = g_malloc (sizeof (gchar *) * 2);
-    config->variants = g_malloc (sizeof (gchar *) * 2);
-    config->model = g_strdup (xkl_config->model);
-    config->layouts[0] = g_steal_pointer (&layout);
-    config->layouts[1] = NULL;
-    config->variants[0] = g_steal_pointer (&variant);
-    config->variants[1] = NULL;
-    if (!xkl_config_rec_activate (config, xkl_engine))
+    if (layouts && xkl_config)
+    {
+        xkl_config->layouts[0] = g_steal_pointer(&layout);
+        xkl_config->layouts[1] = NULL;
+        xkl_config->variants[0] = g_steal_pointer(&variant);
+        xkl_config->variants[1] = NULL;
+        default_layout = dmlayout;
+    }
+    if (!xkl_config_rec_activate (xkl_config, xkl_engine))
         g_warning ("Failed to activate XKL config");
-    g_object_unref (config);
 }
 
 /**
