@@ -1,4 +1,6 @@
 #%PAM-1.0
+# Block login if shell in nologin or false
+auth      required pam_succeed_if.so shell notin /sbin/nologin:/usr/sbin/nologin:/bin/false:/usr/bin/false
 
 # Block login if they are globally disabled
 auth      required pam_nologin.so
