@@ -33,9 +33,6 @@ common_sources = \
 	power.cpp \
 	sessionsmodel.cpp \
 	usersmodel.cpp
-liblightdm_qt_3_la_SOURCES = \
-	$(common_sources) \
-	$(liblightdm_qt_3include_HEADERS)
 liblightdm_qt5_3_la_SOURCES = \
 	$(common_sources) \
 	$(liblightdm_qt5_3include_HEADERS)
