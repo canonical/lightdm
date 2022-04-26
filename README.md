@@ -45,7 +45,7 @@ For example, if a sysadmin wanted to override the system configured default sess
 user-session=mysession
 ```
 
-Configuration is in keyfile format. For most installations you will want to change the keys in the `[Seat:*]` section as this applies to all seats on the system (normally just one). A configuration file showing all the possible keys is provided in [`data/lightdm.conf`](https://github.com/Canonical/lightdm/blob/master/data/lightdm.conf).
+Configuration is in keyfile format. For most installations you will want to change the keys in the `[Seat:*]` section as this applies to all seats on the system (normally just one). A configuration file showing all the possible keys is provided in [`data/lightdm.conf`](https://github.com/canonical/lightdm/blob/main/data/lightdm.conf).
 
 # Questions
 
