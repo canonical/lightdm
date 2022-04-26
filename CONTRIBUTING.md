@@ -1,4 +1,4 @@
-We welcome improvements and bug fixes to LightDM. All changes should be proposed as [pull requests](https://github.com/Canonical/lightdm/pulls).
+We welcome improvements and bug fixes to LightDM. All changes should be proposed as [pull requests](https://github.com/canonical/lightdm/pulls).
 
 Contributors are required to have signed the [Canonical contributor licence agreement](http://www.ubuntu.com/legal/contributors).
 
