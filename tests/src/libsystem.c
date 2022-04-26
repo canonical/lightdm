@@ -128,6 +128,12 @@ getgroups (int size, gid_t list[])
 }
 
 int
+__getgroups_chk (int size, gid_t list[], size_t listlen)
+{
+   return getgroups (size, list);
+}
+
+int
 setgroups (size_t size, const gid_t *list)
 {
     g_autoptr(GString) group_list = g_string_new ("");
