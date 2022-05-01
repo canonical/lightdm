@@ -128,6 +128,7 @@ getgroups (int size, gid_t list[])
 }
 
 #ifdef HAVE___GETGROUPS_CHK
+int __getgroups_chk (int size, gid_t list[], size_t listlen);
 int
 __getgroups_chk (int size, gid_t list[], size_t listlen)
 {
