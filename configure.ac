@@ -48,7 +48,7 @@ AC_CHECK_HEADERS(security/pam_appl.h, [], AC_MSG_ERROR(PAM not found))
 
 AC_CHECK_HEADERS(gcrypt.h, [], AC_MSG_ERROR(libgcrypt not found))
 
-AC_CHECK_FUNCS(setresgid setresuid clearenv)
+AC_CHECK_FUNCS(setresgid setresuid clearenv __getgroups_chk)
 
 PKG_CHECK_MODULES(LIGHTDM, [
     glib-2.0 >= 2.44

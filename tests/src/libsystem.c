@@ -127,11 +127,13 @@ getgroups (int size, gid_t list[])
     return groups_length;
 }
 
+#if HAVE___GETGROUPS_CHK
 int
 __getgroups_chk (int size, gid_t list[], size_t listlen)
 {
    return getgroups (size, list);
 }
+#endif
 
 int
 setgroups (size_t size, const gid_t *list)
