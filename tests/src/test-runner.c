@@ -2582,7 +2582,7 @@ main (int argc, char **argv)
         /* Root account */
         {"root",             "",          "root",                  0},
         /* Unprivileged account for greeters */
-        {"lightdm",          "",          "",                    100},
+        {GREETER_USER,          "",          "",                 100},
         /* These accounts have a password */
         {"have-password1",   "password",  "Password User 1",    1000},
         {"have-password2",   "password",  "Password User 2",    1001},
