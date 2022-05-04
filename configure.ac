@@ -251,6 +251,9 @@ po/Makefile.in
 src/Makefile
 tests/Makefile
 tests/src/Makefile
+tests/scripts/login-pam-config.conf
+tests/scripts/login-pam.conf
+tests/scripts/switch-to-greeter-return-session-pam.conf
 ])
 AC_OUTPUT
 

@@ -1,11 +1,9 @@
 #
-# Check we can configure the PAM service for login
+# Check we correctly use PAM for login
 #
 
 [Seat:*]
 user-session=default
-pam-service=lightdm-alternative
-pam-greeter-service=lightdm-greeter-alternative
 
 [test-pam]
 log-events=true
@@ -22,9 +20,9 @@ log-events=true
 #?XSERVER-0 ACCEPT-CONNECT
 
 # Create PAM session for greeter
-#?PAM-lightdm START SERVICE=lightdm-greeter-alternative USER=lightdm
-#?PAM-lightdm SETCRED ESTABLISH_CRED
-#?PAM-lightdm OPEN-SESSION
+#?PAM-@GREETER_USER@ START SERVICE=lightdm-greeter USER=@GREETER_USER@
+#?PAM-@GREETER_USER@ SETCRED ESTABLISH_CRED
+#?PAM-@GREETER_USER@ OPEN-SESSION
 
 # Greeter starts
 #?GREETER-X-0 START XDG_SEAT=seat0 XDG_VTNR=7 XDG_SESSION_CLASS=greeter
@@ -36,7 +34,7 @@ log-events=true
 
 # Greeter does authentication via PAM
 #?*GREETER-X-0 AUTHENTICATE USERNAME=have-password1
-#?PAM-have-password1 START SERVICE=lightdm-alternative USER=have-password1
+#?PAM-have-password1 START SERVICE=lightdm USER=have-password1
 #?PAM-have-password1 AUTHENTICATE
 #?GREETER-X-0 SHOW-PROMPT TEXT="Password:"
 #?*GREETER-X-0 RESPOND TEXT="password"
@@ -50,9 +48,9 @@ log-events=true
 
 # Greeter session stops
 #?GREETER-X-0 TERMINATE SIGNAL=15
-#?PAM-lightdm CLOSE-SESSION
-#?PAM-lightdm SETCRED DELETE_CRED
-#?PAM-lightdm END
+#?PAM-@GREETER_USER@ CLOSE-SESSION
+#?PAM-@GREETER_USER@ SETCRED DELETE_CRED
+#?PAM-@GREETER_USER@ END
 
 # Session starts
 #?SESSION-X-0 START XDG_SEAT=seat0 XDG_VTNR=7 XDG_GREETER_DATA_DIR=.*/have-password1 XDG_SESSION_TYPE=x11 XDG_SESSION_DESKTOP=default USER=have-password1
