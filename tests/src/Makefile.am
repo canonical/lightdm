@@ -1,3 +1,7 @@
+# Disable compiler optimizations for this section
+# of programs as it is known to be buggy with LD_PRELOAD.
+CFLAGS = @CFLAGS@ -O0
+
 noinst_PROGRAMS = dbus-env \
                   initctl \
                   plymouth \
