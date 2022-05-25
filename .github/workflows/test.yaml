@@ -12,7 +12,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - ubuntu:rolling
           - fedora:latest
 
     runs-on: ubuntu-latest
