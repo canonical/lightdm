@@ -47,6 +47,6 @@ Configuration is in keyfile format. For most installations you will want to chan
 
 # Questions
 
-Questions should be asked on the [mailing list](http://lists.freedesktop.org/mailman/listinfo/lightdm). All questions are welcome.
+Discussion about LightDM should be done on the [forum](https://discourse.ubuntu.com/c/light-dm/107). All questions are welcome.
 
 [Stack Overflow](http://stackoverflow.com/search?q=lightdm) and [Ask Ubuntu](http://askubuntu.com/search?q=lightdm) are good sites for frequently asked questions.
