@@ -13,8 +13,6 @@ Key features of LightDM are:
 - Supports remote login (incoming - XDMCP, VNC, outgoing - XDMCP, pluggable).
 - Comprehensive test suite.
 
-Releases are synchronised with the [Ubuntu release schedule](https://wiki.ubuntu.com/Releases) and supported for the duration of each Ubuntu release. Each release is announced on the [mailing list](http://lists.freedesktop.org/mailman/listinfo/lightdm).
-
 The core LightDM project does not provide any greeter with it and you should install a greeter appropriate to your system. Popular greeter projects are:
 
  * [LightDM GTK+ Greeter](https://github.com/Xubuntu/lightdm-gtk-greeter) - a greeter that has moderate requirements (GTK+).
