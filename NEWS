@@ -1,3 +1,24 @@
+Overview of changes in lightdm 1.32.0
+
+   * Overwrite existing X authority files to avoid corruption
+   * Change logind-check-graphical default config value to true
+   * Block autologin if shell in nologin or false
+   * Fix failure if with greeters sending two login requests quickly.
+   * Drop Qt 4 support, it's been unsupported since 2015
+   * Fix lightdm_set_layout
+   * Improve method of determining a session is Wayland
+   * Don't call setenv with a NULL value - the behaviour is undefined
+   * Replace deprecated QAbstractItemModel::setRoleNames
+   * Move D-Bus conf file to $(datadir)/dbus-1/system.d
+   * Fix tests failing when compiled with --with-greeter-user
+   * Use Python 3 in tests
+   * Disable compiler optimizations for test programs
+   * Compilation fix for glibc 2.33
+   * Remove deprecated use of G_TYPE_INSTANCE_GET_PRIVATE, G_PARAM_PRIVATE
+   * Fix compile failure due to use of clearenv on FreeBSD
+   * Use a size_t to resolve a compile warning
+   * Fix DesktopManager typo in man page
+
 Overview of changes in lightdm 1.30.0
 
     * Add lightdm_user_get_is_locked ()
