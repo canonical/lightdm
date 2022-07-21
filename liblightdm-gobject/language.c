@@ -210,6 +210,7 @@ lightdm_language_get_name (LightDMLanguage *language)
 
     if (!priv->name)
     {
+#if HAVE_LC_IDENTIFICATION
         g_autofree gchar *locale = get_locale_name (priv->code);
         if (locale)
         {
@@ -223,6 +224,7 @@ lightdm_language_get_name (LightDMLanguage *language)
 
             setlocale (LC_ALL, current);
         }
+#endif
         if (!priv->name)
         {
             g_auto(GStrv) tokens = g_strsplit_set (priv->code, "_.@", 2);
@@ -250,6 +252,7 @@ lightdm_language_get_territory (LightDMLanguage *language)
 
     if (!priv->territory && strchr (priv->code, '_'))
     {
+#if HAVE_LC_IDENTIFICATION
         g_autofree gchar *locale = get_locale_name (priv->code);
         if (locale)
         {
@@ -263,6 +266,7 @@ lightdm_language_get_territory (LightDMLanguage *language)
 
             setlocale (LC_ALL, current);
         }
+#endif
         if (!priv->territory)
         {
             g_auto(GStrv) tokens = g_strsplit_set (priv->code, "_.@", 3);
