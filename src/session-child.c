@@ -194,8 +194,13 @@ read_xauth (void)
 }
 
 /* GNU provides this but we can't rely on that so let's make our own version */
+#if defined(__GLIBC__)
 static void
 updwtmpx (const gchar *wtmp_file, struct utmpx *ut)
+#else // use this version in libc's other than glibc
+void
+updwtmpx (const char *wtmp_file, const struct utmpx *ut)
+#endif
 {
     struct utmp u;
     memset (&u, 0, sizeof (u));
