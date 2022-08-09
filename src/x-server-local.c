@@ -463,14 +463,20 @@ x_server_local_start (DisplayServer *display_server)
     l_debug (display_server, "Logging to %s", log_file);
 
     g_autofree gchar *absolute_command = get_absolute_command (priv->command);
+    g_auto(GStrv) tokens = g_strsplit (absolute_command, " ", 2);
+    const gchar* binary = tokens[0];
+    const gchar *extra_options = tokens[1];
+
     if (!absolute_command)
     {
         l_debug (display_server, "Can't launch X server %s, not found in path", priv->command);
         stopped_cb (priv->x_server_process, X_SERVER_LOCAL (server));
         return FALSE;
     }
-    g_autoptr(GString) command = g_string_new (absolute_command);
+    g_autoptr(GString) command = g_string_new (binary);
 
+    /* The display argument must be given first when the X server used
+     * is Xvnc. */
     g_string_append_printf (command, " :%d", priv->display_number);
 
     if (priv->config_file)
@@ -512,6 +518,12 @@ x_server_local_start (DisplayServer *display_server)
     /* Allow sub-classes to add arguments */
     if (X_SERVER_LOCAL_GET_CLASS (server)->add_args)
         X_SERVER_LOCAL_GET_CLASS (server)->add_args (server, command);
+
+    /* Any extra user options provided via the VNCServer 'command'
+     * config option are appended last, so the user can override any
+     * of the above. */
+    if (extra_options)
+        g_string_append_printf (command, " %s", extra_options);
 
     process_set_command (priv->x_server_process, command->str);
 
