@@ -7,7 +7,6 @@ usr/share/locale
 usr/share/polkit-1
 usr/lib/lightdm
 usr/bin
-etc/dbus-1/
 etc/lightdm/users.conf
 etc/lightdm/lightdm.conf usr/share/doc/lightdm/
 etc/lightdm/keys.conf usr/share/doc/lightdm/
