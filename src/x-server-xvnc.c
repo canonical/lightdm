@@ -127,7 +127,7 @@ x_server_xvnc_init (XServerXVNC *server)
     XServerXVNCPrivate *priv = x_server_xvnc_get_instance_private (server);
     priv->width = 1024;
     priv->height = 768;
-    priv->depth = 8;
+    priv->depth = 24;
 }
 
 static void
