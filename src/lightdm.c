@@ -349,27 +349,42 @@ start_display_manager (void)
     /* Start the VNC server */
     if (config_get_boolean (config_get_instance (), "VNCServer", "enabled"))
     {
-        g_autofree gchar *path = g_find_program_in_path ("Xvnc");
-        if (path)
+        /* Validate that a the VNC command is available. */
+        g_autofree gchar *command = config_get_string (config_get_instance (), "VNCServer", "command");
+        if (command)
         {
-            vnc_server = vnc_server_new ();
-            if (config_has_key (config_get_instance (), "VNCServer", "port"))
+            g_auto(GStrv) tokens = g_strsplit (command, " ", 2);
+            if (!g_find_program_in_path (tokens[0]))
             {
-                gint port = config_get_integer (config_get_instance (), "VNCServer", "port");
-                if (port > 0)
-                    vnc_server_set_port (vnc_server, port);
+                g_warning ("Can't start VNC server; command '%s' not found", tokens[0]);
+                return;
             }
-            g_autofree gchar *listen_address = config_get_string (config_get_instance (), "VNCServer", "listen-address");
-            vnc_server_set_listen_address (vnc_server, listen_address);
-            g_signal_connect (vnc_server, VNC_SERVER_SIGNAL_NEW_CONNECTION, G_CALLBACK (vnc_connection_cb), NULL);
-
-            g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
-            vnc_server_start (vnc_server);
         }
         else
-            g_warning ("Can't start VNC server, Xvnc is not in the path");
+        {
+            /* Fallback to 'Xvnc'. */
+            if (!g_find_program_in_path ("Xvnc")) {
+                g_warning ("Can't start VNC server; 'Xvnc' command not found");
+                return;
+            }
+        }
+
+        vnc_server = vnc_server_new ();
+        if (config_has_key (config_get_instance (), "VNCServer", "port"))
+        {
+            gint port = config_get_integer (config_get_instance (), "VNCServer", "port");
+            if (port > 0)
+                vnc_server_set_port (vnc_server, port);
+        }
+        g_autofree gchar *listen_address = config_get_string (config_get_instance (), "VNCServer", "listen-address");
+        vnc_server_set_listen_address (vnc_server, listen_address);
+        g_signal_connect (vnc_server, VNC_SERVER_SIGNAL_NEW_CONNECTION, G_CALLBACK (vnc_connection_cb), NULL);
+
+        g_debug ("Starting VNC server on TCP/IP port %d", vnc_server_get_port (vnc_server));
+        vnc_server_start (vnc_server);
     }
 }
+
 static void
 service_ready_cb (DisplayManagerService *service)
 {
