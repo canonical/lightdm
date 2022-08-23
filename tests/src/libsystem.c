@@ -222,7 +222,7 @@ redirect_path (const gchar *path)
     return g_strdup (path);
 }
 
-#ifdef __linux__
+#ifdef __GLIBC__
 static int
 open_wrapper (const char *func, const char *pathname, int flags, mode_t mode)
 {
