@@ -61,7 +61,8 @@ case "$1" in
   start)
     if [ "$HEED_DEFAULT_DISPLAY_MANAGER" = "true" ] &&
        [ -e $DEFAULT_DISPLAY_MANAGER_FILE ] &&
-       [ "$(cat $DEFAULT_DISPLAY_MANAGER_FILE)" != "/usr/bin/lightdm" -a "$(cat $DEFAULT_DISPLAY_MANAGER_FILE)" != "/usr/sbin/lightdm" ]; then
+       [ "$(cat $DEFAULT_DISPLAY_MANAGER_FILE)" != "/usr/bin/lightdm" ] &&
+	   [ "$(cat $DEFAULT_DISPLAY_MANAGER_FILE)" != "/usr/sbin/lightdm" ]; then
       echo "Not starting X display manager (lightdm); it is not the default" \
         "display manager."
     else
