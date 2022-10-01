@@ -62,7 +62,7 @@ if type setxkbmap >/dev/null 2>&1; then
     for file in "/etc/X11/Xkbmap" "$HOME/.Xkbmap"; do
         if [ -f "$file" ]; then
             echo "Loading keymap: $file"
-            setxkbmap `cat "$file"`
+            setxkbmap $(cat "$file")
             XKB_IN_USE=yes
         fi
     done
@@ -103,7 +103,7 @@ USERXSESSIONRC=$HOME/.xsessionrc
 ALTUSERXSESSION=$HOME/.Xsession
 
 if [ -d "$xsessionddir" ]; then
-    for i in `ls $xsessionddir`; do
+    for i in $(ls $xsessionddir); do
         script="$xsessionddir/$i"
         echo "Loading X session script $script"
         if [ -r "$script" ] && [ -f "$script" ] && expr "$i" : '^[[:alnum:]_-]\+$' > /dev/null; then

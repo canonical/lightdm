@@ -28,7 +28,7 @@ cleanup()
     exit 0
 }
 
-[ -n "$DBUS_SESSION_BUS_ADDRESS" ] || eval `dbus-launch --sh-syntax`
+[ -n "$DBUS_SESSION_BUS_ADDRESS" ] || eval $(dbus-launch --sh-syntax)
 
 exec $@ &
 CMD_PID=$!
