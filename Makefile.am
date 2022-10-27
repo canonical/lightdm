@@ -16,3 +16,6 @@ EXTRA_DIST = \
 	NEWS
 
 DISTCLEANFILES = po/.intltool-merge-cache.lock
+
+lightdm-${VERSION}.tar.xz.asc: lightdm-${VERSION}.tar.xz
+	gpg --armor --detach-sig --sign $<
