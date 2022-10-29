@@ -1,109 +1,166 @@
 # Chinese (Simplified) translation for lightdm
 # Copyright (c) 2010 Rosetta Contributors and Canonical Ltd 2010
 # This file is distributed under the same license as the lightdm package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2010.
+# Boyuan Yang <byang@debian.org>, 2022.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: lightdm\n"
-"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2010-12-06 11:05+0000\n"
-"PO-Revision-Date: 2010-12-28 10:03+0000\n"
-"Last-Translator: Wheat0r Hou <Unknown>\n"
-"Language-Team: Chinese (Simplified) <zh_CN@li.org>\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-10-29 00:22-0400\n"
+"PO-Revision-Date: 2022-10-29 00:34-0400\n"
+"Last-Translator: Boyuan Yang <byang@debian.org>\n"
+"Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
+"Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2013-08-09 05:11+0000\n"
-"X-Generator: Launchpad (build 16723)\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 3.2\n"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:409
-msgid "Are you sure you want to close all programs and restart the computer?"
-msgstr "您确定要关闭所有程序并重新启动计算机？"
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:1
+msgid "Set properties of own user"
+msgstr "设置本用户的属性"
 
-#: ../greeters/gtk/greeter.ui.h:1
-msgid "Cancel"
-msgstr "取消"
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:2
+msgid "Authentication is required to set one's own greeter properties."
+msgstr "设置本用户的欢迎界面属性需要验证。"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:410
-msgid "Restart"
-msgstr "重启"
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:3
+msgid "Set properties of any user"
+msgstr "设置适用于所有用户的属性"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:434
-msgid ""
-"Are you sure you want to close all programs and shutdown the computer?"
-msgstr "您确定要关闭所有程序并关闭计算机？"
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:4
+msgid "Authentication is required to get another user's greeter properties."
+msgstr "获取其他用户的欢迎界面的属性需要验证。"
 
-#: ../greeters/gtk/lightdm-gtk-greeter.c:435
-msgid "Shutdown"
-msgstr "关机"
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:5
+msgid "Authentication is required to set another user's greeter properties."
+msgstr "设置其他用户的欢迎界面的属性需要验证。"
 
-#: ../greeters/gtk/greeter.ui.h:4
-msgid "Large Font"
-msgstr "大字体"
+#. Arguments and description for --help test
+#: ../src/lightdm.c:583
+msgid "- Display Manager"
+msgstr "- 显示管理器"
 
-#: ../greeters/ldm-gtk-greeter.c:611
-msgid "High Constrast"
-msgstr "高对比"
+#. Help string for command line --config flag
+#: ../src/lightdm.c:594
+msgid "Use configuration file"
+msgstr "使用配置文件"
 
-#: ../greeters/ldm-gtk-greeter.c:615
-msgid "Options"
-msgstr "选项"
+#. Help string for command line --debug flag
+#: ../src/lightdm.c:597
+msgid "Print debugging messages"
+msgstr "打印调试信息"
 
-#: ../greeters/ldm-gtk-greeter.c:620
-msgid "Language"
-msgstr "Language/语言设定"
+#. Help string for command line --test-mode flag
+#: ../src/lightdm.c:600
+msgid "Run as unprivileged user, skipping things that require root access"
+msgstr "以非特权用户身份运行，跳过需要根用户权限的操作"
 
-#: ../greeters/ldm-gtk-greeter.c:646
-msgid "Keyboard Layout"
-msgstr "键盘布局"
+#. Help string for command line --pid-file flag
+#: ../src/lightdm.c:603
+msgid "File to write PID into"
+msgstr "用于写入 PID 的文件"
 
-#: ../greeters/ldm-gtk-greeter.c:668
-msgid "Session"
-msgstr "会话"
+#. Help string for command line --log-dir flag
+#: ../src/lightdm.c:606
+msgid "Directory to write logs to"
+msgstr "用于写入日志的目录"
 
-#: ../greeters/gtk/greeter.ui.h:8
-msgid "Suspend"
-msgstr "待机"
+#. Help string for command line --run-dir flag
+#: ../src/lightdm.c:609
+msgid "Directory to store running state"
+msgstr "用于存储运行状态的目录"
 
-#: ../greeters/gtk/greeter.ui.h:2
-msgid "Hibernate"
-msgstr "休眠"
+#. Help string for command line --cache-dir flag
+#: ../src/lightdm.c:612
+msgid "Directory to cache information"
+msgstr "用于缓存信息的目录"
 
-#: ../greeters/gtk/greeter.ui.h:6
-msgid "Restart..."
-msgstr "重启..."
+#. Help string for command line --show-config flag
+#: ../src/lightdm.c:615
+msgid "Show combined configuration"
+msgstr "显示组合配置"
 
-#: ../greeters/gtk/greeter.ui.h:7
-msgid "Shutdown..."
-msgstr "关闭..."
+#. Help string for command line --version flag
+#: ../src/lightdm.c:618
+msgid "Show release version"
+msgstr "显示版本信息"
 
-#. Description on how to use Light Display Manager displayed on command-line
-#: ../src/lightdm.c:100
+#. Text printed out when an unknown command-line argument provided
+#: ../src/lightdm.c:629
 #, c-format
-msgid ""
-"Usage:\n"
-"  %s - Display Manager"
-msgstr ""
-"用法：\n"
-"  %s - 显示管理器"
+msgid "Run '%s --help' to see a full list of available command line options."
+msgstr "运行“%s --help”以查看可用命令行选项的完整列表。"
 
-#. Description on how to use Light Display Manager displayed on command-line
-#: ../src/lightdm.c:106
+#. Text printed out when an unknown command-line argument provided
+#: ../src/dm-tool.c:29
 #, c-format
-msgid ""
-"Help Options:\n"
-"  -c, --config <file>             Use configuration file\n"
-"      --pid-file <file>           File to write PID into\n"
-"  -d, --debug                     Print debugging messages\n"
-"      --test-mode                 Run as unprivileged user\n"
-"  -v, --version                   Show release version\n"
-"  -h, --help                      Show help options"
-msgstr ""
-"帮助:\n"
-"  -c, --config <file> 使用配置文件\n"
-"      --pid-file <file> 写入PID 到指定文件\n"
-"  -d, --debug 打印调试信息\n"
-"      --test-mode 以非特权用户身份运行\n"
-"  -v, --version 显示版本信息\n"
-"  -h, --help 显示帮助信息"
+msgid "Run 'dm-tool --help' to see a full list of available command line options."
+msgstr "运行“dm-tool --help”以查看可用命令行选项的完整列表。"
+
+#~ msgid ""
+#~ "Are you sure you want to close all programs and restart the computer?"
+#~ msgstr "您确定要关闭所有程序并重新启动计算机？"
+
+#~ msgid "Cancel"
+#~ msgstr "取消"
+
+#~ msgid "Restart"
+#~ msgstr "重启"
+
+#~ msgid ""
+#~ "Are you sure you want to close all programs and shutdown the computer?"
+#~ msgstr "您确定要关闭所有程序并关闭计算机？"
+
+#~ msgid "Shutdown"
+#~ msgstr "关机"
+
+#~ msgid "Large Font"
+#~ msgstr "大字体"
+
+#~ msgid "High Constrast"
+#~ msgstr "高对比"
+
+#~ msgid "Options"
+#~ msgstr "选项"
+
+#~ msgid "Language"
+#~ msgstr "Language/语言设定"
+
+#~ msgid "Keyboard Layout"
+#~ msgstr "键盘布局"
+
+#~ msgid "Session"
+#~ msgstr "会话"
+
+#~ msgid "Suspend"
+#~ msgstr "待机"
+
+#~ msgid "Hibernate"
+#~ msgstr "休眠"
+
+#~ msgid "Restart..."
+#~ msgstr "重启..."
+
+#~ msgid "Shutdown..."
+#~ msgstr "关闭..."
+
+#, c-format
+#~ msgid ""
+#~ "Help Options:\n"
+#~ "  -c, --config <file>             Use configuration file\n"
+#~ "      --pid-file <file>           File to write PID into\n"
+#~ "  -d, --debug                     Print debugging messages\n"
+#~ "      --test-mode                 Run as unprivileged user\n"
+#~ "  -v, --version                   Show release version\n"
+#~ "  -h, --help                      Show help options"
+#~ msgstr ""
+#~ "帮助:\n"
+#~ "  -c, --config <file> 使用配置文件\n"
+#~ "      --pid-file <file> 写入PID 到指定文件\n"
+#~ "  -d, --debug 打印调试信息\n"
+#~ "      --test-mode 以非特权用户身份运行\n"
+#~ "  -v, --version 显示版本信息\n"
+#~ "  -h, --help 显示帮助信息"
