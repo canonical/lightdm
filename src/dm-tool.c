@@ -129,8 +129,7 @@ main (int argc, char **argv)
                         "  lock                                                 Lock the current seat\n"
                         "  list-seats                                           List the active seats\n"
                         "  add-nested-seat [--fullscreen|--screen DIMENSIONS]   Start a nested display\n"
-                        "  add-local-x-seat DISPLAY_NUMBER                      Add a local X seat\n"
-                        "  add-seat TYPE [NAME=VALUE...]                        Add a dynamic seat\n");
+                        "  add-local-x-seat DISPLAY_NUMBER                      Add a local X seat\n");
             return EXIT_SUCCESS;
         }
         else if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0)

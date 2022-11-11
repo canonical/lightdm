@@ -4,7 +4,7 @@ _dm_tool()
 {
     local cur prev opts
     _init_completion || return
-    opts='switch-to-greeter switch-to-user switch-to-guest lock list-seats add-nested-seat add-local-x-seat add-seat'
+    opts='switch-to-greeter switch-to-user switch-to-guest lock list-seats add-nested-seat add-local-x-seat'
 
     case "$prev" in
     switch-to-greeter)
@@ -29,10 +29,6 @@ _dm_tool()
         return 0
         ;;
     add-local-x-seat)
-        # FIXME ...
-        return 0
-        ;;
-    add-seat)
         # FIXME ...
         return 0
         ;;
