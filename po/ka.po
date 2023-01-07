@@ -1,0 +1,101 @@
+# Georgian translation for lightdm
+# Copyright (C) 2022 lightdm authors
+# This file is distributed under the same license as the lightdm package.
+# Ekaterine Papava <katopapava@gmail.com>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: lightdm\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-07-18 15:24+1200\n"
+"PO-Revision-Date: 2023-01-07 12:07+0100\n"
+"Last-Translator: Ekaterine Papava <katopapava@gmail.com>\n"
+"Language-Team: Georgian <(nothing)>\n"
+"Language: ka\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.2.2\n"
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:1
+msgid "Set properties of own user"
+msgstr "საკუთარი მომხმარებლის თვისებების დაყენება"
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:2
+msgid "Authentication is required to set one's own greeter properties."
+msgstr "მომხმარებლის საკუთარი მისალმების დასაყენებლად ავთენტიკაციაა საჭირო."
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:3
+msgid "Set properties of any user"
+msgstr "ნებისმიერი მომხმარებლის თვისებების დაყენება"
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:4
+msgid "Authentication is required to get another user's greeter properties."
+msgstr "სხვა მომხმარებლის მისალმების მისაღებად ავთენტიკაციაა საჭირო."
+
+#: ../data/org.freedesktop.DisplayManager.AccountsService.policy.in.h:5
+msgid "Authentication is required to set another user's greeter properties."
+msgstr "სხვა მომხმარებლის მისალმების დასაყენებლად ავთენტიკაციაა საჭირო."
+
+#. Arguments and description for --help test
+#: ../src/lightdm.c:568
+msgid "- Display Manager"
+msgstr "- ეკრანის მმართველი"
+
+#. Help string for command line --config flag
+#: ../src/lightdm.c:579
+msgid "Use configuration file"
+msgstr "კონფიგურაციის ფაილის გამოყენება"
+
+#. Help string for command line --debug flag
+#: ../src/lightdm.c:582
+msgid "Print debugging messages"
+msgstr "გამართვის შეტყობინებების გამოტანა"
+
+#. Help string for command line --test-mode flag
+#: ../src/lightdm.c:585
+msgid "Run as unprivileged user, skipping things that require root access"
+msgstr "გაშვებულია არაპრივილეგირებული მომხმარებლით. ის, რასაც root წვდომა სჭირდება, გამოტოვებული იქნება"
+
+#. Help string for command line --pid-file flag
+#: ../src/lightdm.c:588
+msgid "File to write PID into"
+msgstr "PID-ის ჩასაწერი ფაილი"
+
+#. Help string for command line --log-dir flag
+#: ../src/lightdm.c:591
+msgid "Directory to write logs to"
+msgstr "ჟურნალის ჩასაწერი საქაღალდე"
+
+#. Help string for command line --run-dir flag
+#: ../src/lightdm.c:594
+msgid "Directory to store running state"
+msgstr "გაშვების მდგომარეობის შესანახი საქაღალდე"
+
+#. Help string for command line --cache-dir flag
+#: ../src/lightdm.c:597
+msgid "Directory to cache information"
+msgstr "ინფორმაციის კეშის საქაღალდე"
+
+#. Help string for command line --show-config flag
+#: ../src/lightdm.c:600
+msgid "Show combined configuration"
+msgstr "გაერთიანებული კონფიგურაციის ჩვენება"
+
+#. Help string for command line --version flag
+#: ../src/lightdm.c:603
+msgid "Show release version"
+msgstr "ვერსიის ჩვენება"
+
+#. Text printed out when an unknown command-line argument provided
+#: ../src/lightdm.c:614
+#, c-format
+msgid "Run '%s --help' to see a full list of available command line options."
+msgstr "ბრძანების სტრიქონში ხელმისაწვდომი პარამეტრების სიის სანახავად გაუშვით '%s --help'."
+
+#. Text printed out when an unknown command-line argument provided
+#: ../src/dm-tool.c:29
+#, c-format
+msgid "Run 'dm-tool --help' to see a full list of available command line options."
+msgstr "ბრძანების სტრიქონში ხელმისაწვდომი პარამეტრების სიის სანახავად გაუშვით 'dm-tool --help'."
