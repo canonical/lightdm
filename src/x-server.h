@@ -55,6 +55,8 @@ gsize x_server_get_authentication_data_length (XServer *server);
 
 void x_server_set_authority (XServer *server, XAuthority *authority);
 
+void x_server_set_local_authority (XServer *server);
+
 XAuthority *x_server_get_authority (XServer *server);
 
 G_END_DECLS

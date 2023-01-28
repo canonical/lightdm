@@ -57,9 +57,7 @@ seat_xvnc_create_display_server (Seat *seat, Session *session)
 
     g_autoptr(XServerXVNC) x_server = x_server_xvnc_new ();
     priv->x_server = g_object_ref (x_server);
-    g_autofree gchar *number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
-    g_autoptr(XAuthority) cookie = x_authority_new_local_cookie (number);
-    x_server_set_authority (X_SERVER (x_server), cookie);
+    x_server_set_local_authority (X_SERVER (x_server));
     x_server_xvnc_set_socket (x_server, g_socket_get_fd (priv->connection));
 
     const gchar *command = config_get_string (config_get_instance (), "VNCServer", "command");

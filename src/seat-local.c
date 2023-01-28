@@ -175,9 +175,7 @@ create_x_server (SeatLocal *seat)
     if (command)
         x_server_local_set_command (x_server, command);
 
-    g_autofree gchar *number = g_strdup_printf ("%d", x_server_get_display_number (X_SERVER (x_server)));
-    g_autoptr(XAuthority) cookie = x_authority_new_local_cookie (number);
-    x_server_set_authority (X_SERVER (x_server), cookie);
+    x_server_set_local_authority (X_SERVER (x_server));
 
     const gchar *layout = seat_get_string_property (SEAT (seat), "xserver-layout");
     if (layout)
