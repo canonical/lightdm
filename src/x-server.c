@@ -27,6 +27,9 @@ typedef struct
     /* Authority */
     XAuthority *authority;
 
+    /* Cached hostname for the authority */
+    gchar local_hostname[1024];
+
     /* Connection to this X server */
     xcb_connection_t *connection;
 } XServerPrivate;
@@ -91,6 +94,21 @@ x_server_set_authority (XServer *server, XAuthority *authority)
         priv->authority = g_object_ref (authority);
 }
 
+void
+x_server_set_local_authority (XServer *server)
+{
+    XServerPrivate *priv = x_server_get_instance_private (server);
+
+    g_return_if_fail (server != NULL);
+
+    g_clear_object (&priv->authority);
+    char display_number[12];
+    g_snprintf(display_number, sizeof(display_number), "%d", x_server_get_display_number (server));
+
+    gethostname (priv->local_hostname, 1024);
+    priv->authority = x_authority_new_cookie (XAUTH_FAMILY_LOCAL, (guint8 *) priv->local_hostname, strlen (priv->local_hostname), display_number);
+}
+
 XAuthority *
 x_server_get_authority (XServer *server)
 {
@@ -108,7 +126,18 @@ x_server_get_session_type (DisplayServer *server)
 static gboolean
 x_server_get_can_share (DisplayServer *server)
 {
-    return TRUE;
+    XServerPrivate *priv = x_server_get_instance_private ((XServer*) server);
+    gchar actual_local_hostname[1024];
+
+    g_return_val_if_fail (server != NULL, FALSE);
+
+    if (priv->local_hostname[0] == '\0')
+        return TRUE;
+
+    /* The XAuthority depends on the hostname so we can't share the display
+     * server if the hostname has been changed */
+    gethostname (actual_local_hostname, 1024);
+    return g_strcmp0 (actual_local_hostname, priv->local_hostname) == 0;
 }
 
 static gboolean
