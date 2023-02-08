@@ -17,7 +17,11 @@ PARA1=$(eval_gettext 'Error found when loading $CONFIG_FILE:')
 PARA2=$(gettext 'As a result the session will not be configured correctly.
 You should fix the problem as soon as feasible.')
 
-TEXT="$PARA1\n\n$(fold -s $ERR)\n\n$PARA2"
+TEXT="$PARA1
+
+$(fold -s $ERR)
+
+$PARA2"
 
 if [ -x /usr/bin/kdialog ]; then
 	TEXT_FILE=$(mktemp --tmpdir config-err-kdialog-XXXXXX)
@@ -25,5 +29,5 @@ if [ -x /usr/bin/kdialog ]; then
 	kdialog --textbox "$TEXT_FILE" 500 300
 	rm -f "$TEXT_FILE"
 elif [ -x /usr/bin/zenity ]; then
-	zenity --warning --no-wrap --text="$TEXT"
+	zenity --warning --no-wrap --no-markup --text="$TEXT"
 fi
