@@ -241,6 +241,7 @@ TESTS = \
 	test-multi-seat-autologin-seat1 \
 	test-multi-seat-seat0-non-graphical \
 	test-multi-seat-seat0-non-graphical-disabled \
+	test-multi-seat-no-multi-session \
 	test-multi-seat-non-graphical \
 	test-multi-seat-non-graphical-disabled \
 	test-multi-seat-change-graphical \
@@ -476,6 +477,7 @@ EXTRA_DIST = \
 	scripts/multi-seat-change-graphical.conf \
 	scripts/multi-seat-change-graphical-disabled.conf \
 	scripts/multi-seat-login.conf \
+	scripts/multi-seat-no-multi-session \
 	scripts/multi-seat-non-graphical.conf \
 	scripts/multi-seat-non-graphical-disabled.conf \
 	scripts/multi-seat-seat0-non-graphical.conf \

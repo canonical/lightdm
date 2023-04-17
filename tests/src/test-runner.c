@@ -697,10 +697,11 @@ handle_command (const gchar *command)
     }
     else if (strcmp (name, "SEAT-CAN-SWITCH") == 0)
     {
+        const gchar *path = g_hash_table_lookup (params, "PATH");
         g_autoptr(GError) error = NULL;
         g_autoptr(GVariant) result = g_dbus_connection_call_sync (dbus_conn,
                                                                   "org.freedesktop.DisplayManager",
-                                                                  "/org/freedesktop/DisplayManager/Seat0",
+                                                                  path ? path : "/org/freedesktop/DisplayManager/Seat0",
                                                                   "org.freedesktop.DBus.Properties",
                                                                   "Get",
                                                                   g_variant_new ("(ss)", "org.freedesktop.DisplayManager.Seat", "CanSwitch"),
@@ -711,6 +712,8 @@ handle_command (const gchar *command)
                                                                   &error);
 
         g_autoptr(GString) status = g_string_new ("RUNNER SEAT-CAN-SWITCH");
+        if (path)
+            g_string_append_printf (status, " PATH=%s", path);
         if (result)
         {
             g_autoptr(GVariant) value = NULL;
