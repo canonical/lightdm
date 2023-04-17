@@ -261,6 +261,24 @@ seat_local_set_active_session (Seat *seat, Session *session)
 static Session *
 seat_local_get_active_session (Seat *seat)
 {
+    /*
+     * In the past, virtual terminal switching was the only way to switch
+     * between multiple sessions associated with a seat.  Due to operating
+     * system limitations, virtual terminal switching is limited to seat0, so
+     * the vt_* family of functions from vt.h must only be used with seat0.
+     *
+     * Nowadays, systemd-logind (via the org.freedesktop.login1 dbus interface)
+     * can be used to switch sessions.  logind supports multiple sessions even
+     * on non-seat0 seats.  Whenever logind switches sessions, a callback
+     * updates priv->active_session, so seat_get_expected_active_session should
+     * always return the currently active session.
+     *
+     * FIXME: Use seat_get_expected_active_session even for seat0, falling back
+     * to VT probing if the systemd-logind service is unavailable.
+     */
+    if (strcmp (seat_get_name (seat), "seat0") != 0)
+        return seat_get_expected_active_session (seat);
+
     gint vt = vt_get_active ();
     if (vt < 0)
         return NULL;
