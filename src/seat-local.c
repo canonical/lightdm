@@ -29,14 +29,6 @@ G_DEFINE_TYPE_WITH_PRIVATE (SeatLocal, seat_local, SEAT_TYPE)
 static XServerLocal *create_x_server (SeatLocal *seat);
 
 static void
-seat_local_setup (Seat *seat)
-{
-    seat_set_supports_multi_session (seat, TRUE);
-    seat_set_share_display_server (seat, seat_get_boolean_property (seat, "xserver-share"));
-    SEAT_CLASS (seat_local_parent_class)->setup (seat);
-}
-
-static void
 check_stopped (SeatLocal *seat)
 {
     SeatLocalPrivate *priv = seat_local_get_instance_private (seat);
@@ -64,6 +56,9 @@ xdmcp_x_server_stopped_cb (DisplayServer *display_server, SeatLocal *seat)
 static gboolean
 seat_local_start (Seat *seat)
 {
+    seat_set_supports_multi_session (seat, TRUE);
+    seat_set_share_display_server (seat, seat_get_boolean_property (seat, "xserver-share"));
+
     SeatLocalPrivate *priv = seat_local_get_instance_private (SEAT_LOCAL (seat));
 
     /* If running as an XDMCP client then just start an X server */
@@ -348,7 +343,6 @@ seat_local_class_init (SeatLocalClass *klass)
 
     object_class->finalize = seat_local_finalize;
 
-    seat_class->setup = seat_local_setup;
     seat_class->start = seat_local_start;
     seat_class->create_display_server = seat_local_create_display_server;
     seat_class->display_server_is_used = seat_local_display_server_is_used;

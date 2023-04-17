@@ -36,11 +36,11 @@ SeatXVNC *seat_xvnc_new (GSocket *connection)
     return seat;
 }
 
-static void
-seat_xvnc_setup (Seat *seat)
+static gboolean
+seat_xvnc_start (Seat *seat)
 {
     seat_set_supports_multi_session (seat, FALSE);
-    SEAT_CLASS (seat_xvnc_parent_class)->setup (seat);
+    return SEAT_CLASS (seat_xvnc_parent_class)->start (seat);
 }
 
 static DisplayServer *
@@ -124,7 +124,7 @@ seat_xvnc_class_init (SeatXVNCClass *klass)
     SeatClass *seat_class = SEAT_CLASS (klass);
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    seat_class->setup = seat_xvnc_setup;
+    seat_class->start = seat_xvnc_start;
     seat_class->create_display_server = seat_xvnc_create_display_server;
     seat_class->run_script = seat_xvnc_run_script;
     object_class->finalize = seat_xvnc_session_finalize;

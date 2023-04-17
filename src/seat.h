@@ -40,7 +40,6 @@ typedef struct
 {
     GObjectClass parent_class;
 
-    void (*setup)(Seat *seat);
     gboolean (*start)(Seat *seat);
     DisplayServer *(*create_display_server) (Seat *seat, Session *session);
     gboolean (*display_server_is_used) (Seat *seat, DisplayServer *display_server);

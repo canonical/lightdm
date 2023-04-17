@@ -17,11 +17,11 @@
 
 G_DEFINE_TYPE (SeatXRemote, seat_xremote, SEAT_TYPE)
 
-static void
-seat_xremote_setup (Seat *seat)
+static gboolean
+seat_xremote_start (Seat *seat)
 {
     seat_set_supports_multi_session (seat, FALSE);
-    SEAT_CLASS (seat_xremote_parent_class)->setup (seat);
+    return SEAT_CLASS (seat_xremote_parent_class)->start (seat);
 }
 
 static DisplayServer *
@@ -80,7 +80,7 @@ seat_xremote_class_init (SeatXRemoteClass *klass)
 {
     SeatClass *seat_class = SEAT_CLASS (klass);
 
-    seat_class->setup = seat_xremote_setup;
+    seat_class->start = seat_xremote_start;
     seat_class->create_display_server = seat_xremote_create_display_server;
     seat_class->create_greeter_session = seat_xremote_create_greeter_session;
     seat_class->create_session = seat_xremote_create_session;
