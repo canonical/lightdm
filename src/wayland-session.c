@@ -78,6 +78,8 @@ wayland_session_disconnect_session (DisplayServer *display_server, Session *sess
 static void
 wayland_session_init (WaylandSession *session)
 {
+    WaylandSessionPrivate *priv = wayland_session_get_instance_private (session);
+    priv->vt = -1;
 }
 
 static void

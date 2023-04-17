@@ -246,6 +246,7 @@ TESTS = \
 	test-multi-seat-change-graphical \
 	test-multi-seat-change-graphical-disabled \
 	test-multi-seat-globbing-config-sections \
+	test-multi-seat-wayland \
 	test-mir-autologin \
 	test-mir-greeter \
 	test-mir-session \
@@ -480,6 +481,7 @@ EXTRA_DIST = \
 	scripts/multi-seat-seat0-non-graphical.conf \
 	scripts/multi-seat-seat0-non-graphical-disabled.conf \
 	scripts/multi-seat-globbing-config-sections.conf \
+	scripts/multi-seat-wayland.conf \
 	scripts/no-accounts-service.conf \
 	scripts/no-config.conf \
 	scripts/no-console-kit.conf \
