@@ -767,6 +767,8 @@ session_stopped_cb (Session *session, Seat *seat)
         g_clear_object (&priv->active_session);
     if (session == priv->next_session)
         g_clear_object (&priv->next_session);
+    /* We were waiting for this session, but it didn't start :( */
+    // FIXME: Start a greeter on this?
     if (session == priv->session_to_activate)
         g_clear_object (&priv->session_to_activate);
 
@@ -779,11 +781,6 @@ session_stopped_cb (Session *session, Seat *seat)
         if (script)
             run_script (seat, display_server, script, session_get_user (session));
     }
-
-    /* We were waiting for this session, but it didn't start :( */
-    // FIXME: Start a greeter on this?
-    if (session == priv->session_to_activate)
-        g_clear_object (&priv->session_to_activate);
 
     if (priv->stopping)
     {
