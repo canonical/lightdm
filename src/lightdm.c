@@ -423,12 +423,10 @@ add_login1_seat (Login1Seat *login1_seat)
     {
         set_seat_properties (seat, seat_name);
 
-        if (!login1_seat_get_can_multi_session (login1_seat))
-        {
+        gboolean can_multi_session = login1_seat_get_can_multi_session (login1_seat);
+        if (!can_multi_session)
             g_debug ("Seat %s has property CanMultiSession=no", seat_name);
-            /* XXX: uncomment this line after bug #1371250 is closed.
-            seat_set_property (seat, "allow-user-switching", "false"); */
-        }
+        seat_set_supports_multi_session (seat, can_multi_session);
 
         if (is_seat0)
             seat_set_property (seat, "exit-on-failure", "true");
