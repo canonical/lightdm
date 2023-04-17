@@ -56,7 +56,6 @@ xdmcp_x_server_stopped_cb (DisplayServer *display_server, SeatLocal *seat)
 static gboolean
 seat_local_start (Seat *seat)
 {
-    seat_set_supports_multi_session (seat, TRUE);
     seat_set_share_display_server (seat, seat_get_boolean_property (seat, "xserver-share"));
 
     SeatLocalPrivate *priv = seat_local_get_instance_private (SEAT_LOCAL (seat));
@@ -320,6 +319,7 @@ seat_local_stop (Seat *seat)
 static void
 seat_local_init (SeatLocal *seat)
 {
+    seat_set_supports_multi_session (SEAT (seat), TRUE);
 }
 
 static void
