@@ -1387,7 +1387,13 @@ start_display_server (Seat *seat, DisplayServer *display_server)
         return TRUE;
     }
     else
-        return display_server_start (display_server);
+    {
+        gboolean success = display_server_start (display_server);
+        if (!success) {
+            l_debug (seat, "Failed to start the display server");
+        }
+        return success;
+    }
 }
 
 gboolean
@@ -1398,7 +1404,10 @@ seat_switch_to_greeter (Seat *seat)
     g_return_val_if_fail (seat != NULL, FALSE);
 
     if (!seat_get_can_switch (seat) && priv->sessions != NULL)
+    {
+        l_debug (seat, "Unable to switch to greeter because the seat already has a session and does not support session switching");
         return FALSE;
+    }
 
     /* Switch to greeter if one open */
     GreeterSession *greeter_session = find_greeter_session (seat);
@@ -1411,13 +1420,17 @@ seat_switch_to_greeter (Seat *seat)
 
     greeter_session = create_greeter_session (seat);
     if (!greeter_session)
+    {
+        l_debug (seat, "Failed to create a greeter session");
         return FALSE;
+    }
 
     g_clear_object (&priv->session_to_activate);
     priv->session_to_activate = g_object_ref (SESSION (greeter_session));
 
     DisplayServer *display_server = create_display_server (seat, SESSION (greeter_session));
     if (!display_server) {
+        l_debug (seat, "Failed to create a display server for the new greeter session");
         g_clear_object (&priv->session_to_activate);
         return FALSE;
     }
