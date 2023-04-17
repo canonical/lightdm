@@ -216,7 +216,6 @@ seat_start (Seat *seat)
 
     l_debug (seat, "Starting");
 
-    SEAT_GET_CLASS (seat)->setup (seat);
     priv->started = SEAT_GET_CLASS (seat)->start (seat);
 
     return priv->started;
@@ -1680,11 +1679,6 @@ seat_get_is_stopping (Seat *seat)
     return priv->stopping;
 }
 
-static void
-seat_real_setup (Seat *seat)
-{
-}
-
 static gboolean
 seat_real_start (Seat *seat)
 {
@@ -1942,7 +1936,6 @@ seat_class_init (SeatClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-    klass->setup = seat_real_setup;
     klass->start = seat_real_start;
     klass->create_display_server = seat_real_create_display_server;
     klass->display_server_is_used = seat_real_display_server_is_used;
