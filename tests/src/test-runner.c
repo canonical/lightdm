@@ -52,8 +52,9 @@ typedef struct
  * concurrency, status messages emitted during testing do not have to appear in
  * the same order as their corresponding status matcher lines in the script.  In
  * effect, the test runner moves event matcher lines up or down to accommodate
- * the actual observed events.  It can move a matcher line up an unlimited
- * amount, but it will not move it down below the next command.  Details:
+ * the actual observed events.  It will not move a matcher line above a previous
+ * FENCE command (if one exists), nor will it move it below the next command
+ * (FENCE or otherwise).  Details:
  *
  *   - When the test code emits a status message, the test runner only considers
  *     the first status matcher line that meets ALL of the following
@@ -66,12 +67,15 @@ typedef struct
  *         prefix.  (Prefix is defined as the characters before the first space,
  *         if any.)
  *
+ *       * The status matcher line is before the next FENCE command, if one
+ *         exists.
+ *
  *     If no such line exists, or its regular expression does not match, the
  *     test fails.
  *
- *     The test runner does not care where the matching status matcher line is
- *     in the script.  The line could even be after a command line that has not
- *     yet executed.
+ *     Other than the above constraints, the test runner does not care where the
+ *     matching status matcher line is in the script.  The line could even be
+ *     after a command line that has not yet executed (except for FENCE).
  *
  *   - A command line will not be executed until every line above it is resolved
  *     (observed or executed, depending on the line type).
@@ -319,9 +323,16 @@ get_prefix (const gchar *text)
 static ScriptLine *
 get_script_line (const gchar *prefix)
 {
+    gboolean stop_at_fence = prefix != NULL;
     for (GList *link = script; link; link = link->next)
     {
         ScriptLine *line = link->data;
+
+        if (line->done)
+            continue;
+
+        if (stop_at_fence && strcmp (line->text, "*FENCE") == 0)
+            break;
 
         /* Ignore lines with other prefixes */
         if (prefix)
@@ -331,8 +342,7 @@ get_script_line (const gchar *prefix)
                 continue;
         }
 
-        if (!line->done)
-            return line;
+        return line;
     }
 
     return NULL;
@@ -509,6 +519,18 @@ handle_command (const gchar *command)
 
         /* Restart status timeout */
         status_timeout = g_timeout_add (status_timeout_ms, status_timeout_cb, NULL);
+    }
+    else if (strcmp (name, "FENCE") == 0)
+    {
+        /*
+         * Nothing special needs to be done here because FENCE's behavior is
+         * implemented elsewhere:
+         *   - run_commands ensures that every status matcher line above a
+         *     command (any command, not just FENCE) has been matched before
+         *     executing the command.
+         *   - When called from check_status, get_script_line stops at the next
+         *     FENCE.
+         */
     }
     else if (strcmp (name, "ADD-SEAT") == 0)
     {
@@ -987,6 +1009,7 @@ run_commands (void)
              * avoid races, don't execute a command until all lines in the
              * script above the command's line are marked as done.  (This
              * function will be called again after the next status arrives.)
+             * The FENCE command in particular relies on this behavior.
              */
             return;
 
