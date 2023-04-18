@@ -921,23 +921,24 @@ handle_command (const gchar *command)
 static void
 run_commands (void)
 {
-    /* Stop daemon if requested */
     while (TRUE)
     {
-        /* Commands start with an asterisk */
         ScriptLine *line = get_script_line (NULL);
-        if (!line || line->text[0] != '*')
-            break;
+        if (!line)
+        {
+            quit (EXIT_SUCCESS);
+            return;
+        }
+
+        /* Commands start with an asterisk */
+        if (line->text[0] != '*')
+            return;
 
         statuses = g_list_append (statuses, g_strdup (line->text));
         line->done = TRUE;
 
         handle_command (line->text + 1);
     }
-
-    /* Stop at the end of the script */
-    if (get_script_line (NULL) == NULL)
-        quit (EXIT_SUCCESS);
 }
 
 static gboolean
