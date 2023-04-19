@@ -27,9 +27,54 @@ static gchar *status_socket_name = NULL;
 static GList *statuses = NULL;
 typedef struct
 {
+    /*
+     * text is the script line with its "#?" prefix removed.  (Lines without
+     * that prefix are ignored.)  There are two types of lines:
+     *
+     *   - If text starts with '*', then text is a command that will trigger
+     *     some action when executed (see handle_command).
+     *
+     *   - Otherwise, text is a status matcher: a regular expression that is
+     *     expected to match a status line emitted by the test code when an
+     *     event of interest occurs.
+     */
     gchar *text;
+    /*
+     * done is set to true when:
+     *   - command line: the command is executed
+     *   - status matcher line: it is matched with an emitted status line
+     */
     gboolean done;
 } ScriptLine;
+/*
+ * script is a list of ScriptLines.  To avoid test flakiness caused by event
+ * concurrency, status messages emitted during testing do not have to appear in
+ * the same order as their corresponding status matcher lines in the script.  In
+ * effect, the test runner moves event matcher lines up or down to accommodate
+ * the actual observed events.  It can move a matcher line up an unlimited
+ * amount, but it will not move it down below the next command.  Details:
+ *
+ *   - When the test code emits a status message, the test runner only considers
+ *     the first status matcher line that meets ALL of the following
+ *     requirements:
+ *
+ *       * The status matcher line has not already been matched with a
+ *         previously emitted status message (its done flag is false).
+ *
+ *       * The status message and the status matcher line both have the same
+ *         prefix.  (Prefix is defined as the characters before the first space,
+ *         if any.)
+ *
+ *     If no such line exists, or its regular expression does not match, the
+ *     test fails.
+ *
+ *     The test runner does not care where the matching status matcher line is
+ *     in the script.  The line could even be after a command line that has not
+ *     yet executed.
+ *
+ *   - A command line will not be executed until every line above it is resolved
+ *     (observed or executed, depending on the line type).
+ */
 static GList *script = NULL;
 static guint status_timeout = 0;
 static gchar *temp_dir = NULL;
@@ -194,6 +239,7 @@ watch_process (pid_t pid)
     return process;
 }
 
+/* WARNING: This function might return. */
 static void
 quit (int status)
 {
@@ -237,6 +283,7 @@ quit (int status)
     exit (status);
 }
 
+/* WARNING: This function might return. */
 static void
 fail (const gchar *event, const gchar *expected)
 {
@@ -932,6 +979,12 @@ run_commands (void)
 
         /* Commands start with an asterisk */
         if (line->text[0] != '*')
+            /*
+             * line is not a command line, and it is not marked as done.  To
+             * avoid races, don't execute a command until all lines in the
+             * script above the command's line are marked as done.  (This
+             * function will be called again after the next status arrives.)
+             */
             return;
 
         statuses = g_list_append (statuses, g_strdup (line->text));
