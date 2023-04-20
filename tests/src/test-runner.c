@@ -990,6 +990,9 @@ run_commands (void)
         statuses = g_list_append (statuses, g_strdup (line->text));
         line->done = TRUE;
 
+        if (getenv ("DEBUG"))
+            g_print ("%s\n", line->text);
+
         handle_command (line->text + 1);
     }
 }
