@@ -36,7 +36,7 @@ jobs:
         run: |
           ./autogen.sh --disable-silent-rules --enable-gtk-doc
           make
-          make check
+          make check DEBUG=true
 
       - name: Upload Test Log
         if: failure()
