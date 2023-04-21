@@ -2770,7 +2770,9 @@ main (int argc, char **argv)
     if (g_key_file_has_key (config, "test-runner-config", "timeout", NULL))
         status_timeout_ms = g_key_file_get_integer (config, "test-runner-config", "timeout", NULL) * 1000;
 
-    dbus_conn = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL);
+    dbus_conn = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+    if (!dbus_conn)
+        g_error("Failed to connect to system D-Bus: %s", error->message);
 
     /* Start D-Bus services */
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-upower", NULL))
