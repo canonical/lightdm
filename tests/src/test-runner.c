@@ -2441,6 +2441,52 @@ dbus_signal_cb (GDBusConnection *connection,
     check_status (status->str);
 }
 
+/*
+ * Copies src to dst.  Takes ownership of src and dst.  If src is a symlink, the
+ * target is copied, not the symlink.  If the final component of src is "*", the
+ * contents of the parent of src (which must not have any subdirectories) is
+ * copied, and dst must name a directory.  Otherwise, src must name a file.  dst
+ * may be a filename or directory name.  Terminates the process if copying
+ * fails.
+ */
+static void
+cp (GFile *src, GFile *dst)
+{
+    g_autoptr(GFile) s = g_steal_pointer(&src);
+    g_autoptr(GFile) d = g_steal_pointer(&dst);
+    g_autofree char *base = g_file_get_basename(s);
+    if (strcmp (base, "*") == 0)
+    {
+        if (g_file_query_file_type (d, G_FILE_QUERY_INFO_NONE, NULL) != G_FILE_TYPE_DIRECTORY)
+            g_error ("Cannot copy %s to %s: destination is not a directory", g_file_peek_path (s), g_file_peek_path (d));
+        g_autoptr(GFile) sdir = g_file_get_parent (s);
+        g_autoptr(GError) error = NULL;
+        g_autoptr(GFileEnumerator) direnum = g_file_enumerate_children (sdir, G_FILE_ATTRIBUTE_STANDARD_NAME, G_FILE_QUERY_INFO_NONE, NULL, &error);
+        if (!direnum)
+            g_error ("Failed to enumerate directory %s: %s", g_file_peek_path (sdir), error->message);
+        while (TRUE) {
+            GFileInfo *info = NULL;
+            if (!g_file_enumerator_iterate (direnum, &info, NULL, NULL, &error))
+                g_error ("Failed to enumerate directory %s: %s:", g_file_peek_path (sdir), error->message);
+            if (!info)
+                break;
+            g_object_ref (G_OBJECT (d));
+            cp (g_file_enumerator_get_child (direnum, info), d);
+        }
+        if (!g_file_enumerator_close (direnum, NULL, &error))
+            g_error ("Failed to close enumerator for directory %s: %s", g_file_peek_path (sdir), error->message);
+        return;
+    }
+    if (g_file_query_file_type (d, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY)
+    {
+        cp (g_steal_pointer(&s), g_file_new_build_filename (g_file_peek_path (d), base, NULL));
+        return;
+    }
+    g_autoptr(GError) error = NULL;
+    if (!g_file_copy (s, d, G_FILE_COPY_NONE, NULL, NULL, NULL, &error))
+        g_error ("Failed to copy %s to %s: %s", g_file_peek_path (s), g_file_peek_path (d), error->message);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2551,10 +2597,10 @@ main (int argc, char **argv)
     /* Copy over the configuration */
     g_mkdir_with_parents (g_strdup_printf ("%s/etc/lightdm", temp_dir), 0755);
     if (!g_key_file_has_key (config, "test-runner-config", "have-config", NULL) || g_key_file_get_boolean (config, "test-runner-config", "have-config", NULL))
-        if (system (g_strdup_printf ("cp %s %s/etc/lightdm/lightdm.conf", config_path, temp_dir)))
-            perror ("Failed to copy configuration");
-    if (system (g_strdup_printf ("cp %s/tests/data/keys.conf %s/etc/lightdm/", SRCDIR, temp_dir)))
-        perror ("Failed to copy key configuration");
+        cp (g_file_new_for_path (config_path),
+            g_file_new_build_filename (temp_dir, "etc/lightdm/lightdm.conf", NULL));
+    cp (g_file_new_build_filename (SRCDIR, "tests/data/keys.conf", NULL),
+        g_file_new_build_filename (temp_dir, "etc/lightdm", NULL));
 
     g_autofree gchar *additional_system_config = g_key_file_get_string (config, "test-runner-config", "additional-system-config", NULL);
     if (additional_system_config)
@@ -2563,8 +2609,8 @@ main (int argc, char **argv)
 
         g_auto(GStrv) files = g_strsplit (additional_system_config, " ", -1);
         for (int i = 0; files[i]; i++)
-            if (system (g_strdup_printf ("cp %s/tests/scripts/%s %s/usr/share/lightdm/lightdm.conf.d", SRCDIR, files[i], temp_dir)))
-                perror ("Failed to copy configuration");
+            cp (g_file_new_build_filename (SRCDIR, "tests/scripts", files[i], NULL),
+                g_file_new_build_filename (temp_dir, "usr/share/lightdm/lightdm.conf.d", NULL));
     }
 
     g_autofree gchar *additional_config = g_key_file_get_string (config, "test-runner-config", "additional-config", NULL);
@@ -2574,8 +2620,8 @@ main (int argc, char **argv)
 
         g_auto(GStrv) files = g_strsplit (additional_config, " ", -1);
         for (int i = 0; files[i]; i++)
-            if (system (g_strdup_printf ("cp %s/tests/scripts/%s %s/etc/xdg/lightdm/lightdm.conf.d", SRCDIR, files[i], temp_dir)))
-                perror ("Failed to copy configuration");
+            cp (g_file_new_build_filename (SRCDIR, "tests/scripts", files[i], NULL),
+                g_file_new_build_filename (temp_dir, "etc/xdg/lightdm/lightdm.conf.d", NULL));
     }
 
     if (g_key_file_has_key (config, "test-runner-config", "shared-data-dirs", NULL))
@@ -2601,16 +2647,16 @@ main (int argc, char **argv)
     }
 
     /* Always copy the script */
-    if (system (g_strdup_printf ("cp %s %s/script", config_path, temp_dir)))
-        perror ("Failed to copy configuration");
+    cp (g_file_new_for_path (config_path),
+        g_file_new_build_filename (temp_dir, "script", NULL));
 
     /* Copy over the greeter files */
-    if (system (g_strdup_printf ("cp %s/sessions/* %s/usr/share/lightdm/sessions", DATADIR, temp_dir)))
-        perror ("Failed to copy sessions");
-    if (system (g_strdup_printf ("cp %s/remote-sessions/* %s/usr/share/lightdm/remote-sessions", DATADIR, temp_dir)))
-        perror ("Failed to copy remote sessions");
-    if (system (g_strdup_printf ("cp %s/greeters/* %s/usr/share/lightdm/greeters", DATADIR, temp_dir)))
-        perror ("Failed to copy greeters");
+    cp (g_file_new_build_filename (DATADIR, "sessions/*", NULL),
+        g_file_new_build_filename (temp_dir, "usr/share/lightdm/sessions", NULL));
+    cp (g_file_new_build_filename (DATADIR, "remote-sessions/*", NULL),
+        g_file_new_build_filename (temp_dir, "usr/share/lightdm/remote-sessions", NULL));
+    cp (g_file_new_build_filename (DATADIR, "greeters/*", NULL),
+        g_file_new_build_filename (temp_dir, "usr/share/lightdm/greeters", NULL));
 
     /* Set up the default greeter */
     g_autofree gchar *greeter_session = g_strdup_printf ("%s.desktop", DEFAULT_GREETER_SESSION);
