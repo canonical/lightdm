@@ -470,6 +470,8 @@ handle_command (const gchar *command)
         test_runner_command = g_strdup_printf ("PATH=%s LD_PRELOAD=%s LD_LIBRARY_PATH=%s LIGHTDM_TEST_ROOT=%s DBUS_SESSION_BUS_ADDRESS=%s DBUS_SYSTEM_BUS_ADDRESS=%s %s\n",
                                                g_getenv ("PATH"), g_getenv ("LD_PRELOAD"), g_getenv ("LD_LIBRARY_PATH"), g_getenv ("LIGHTDM_TEST_ROOT"), g_getenv ("DBUS_SESSION_BUS_ADDRESS"), g_getenv ("DBUS_SYSTEM_BUS_ADDRESS"),
                                                command_line->str);
+        if (getenv ("DEBUG"))
+            g_print ("Command line: %s\n", test_runner_command);
 
         gchar **lightdm_argv;
         g_autoptr(GError) error = NULL;
