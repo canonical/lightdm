@@ -19,6 +19,7 @@ static int status_timeout_ms = 4000;
 /* Timeout in ms to wait for SIGTERM to be handled by a child process */
 #define KILL_TIMEOUT 2000
 
+static GDBusConnection *dbus_conn = NULL;
 static gchar *test_runner_command;
 static gchar *config_path;
 static GKeyFile *config;
@@ -510,7 +511,7 @@ handle_command (const gchar *command)
     else if (strcmp (name, "ADD-SEAT") == 0)
     {
         const gchar *id = g_hash_table_lookup (params, "ID");
-        Login1Seat *seat = add_login1_seat (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL), id, TRUE);
+        Login1Seat *seat = add_login1_seat (dbus_conn, id, TRUE);
         const gchar *v = g_hash_table_lookup (params, "CAN-GRAPHICAL");
         if (v)
             seat->can_graphical = strcmp (v, "TRUE") == 0;
@@ -521,7 +522,7 @@ handle_command (const gchar *command)
     else if (strcmp (name, "ADD-LOCAL-X-SEAT") == 0)
     {
         const gchar *v = g_hash_table_lookup (params, "DISPLAY");
-        g_autoptr(GVariant) result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_autoptr(GVariant) result = g_dbus_connection_call_sync (dbus_conn,
                                                                   "org.freedesktop.DisplayManager",
                                                                   "/org/freedesktop/DisplayManager",
                                                                   "org.freedesktop.DisplayManager",
@@ -563,7 +564,7 @@ handle_command (const gchar *command)
             }
 
             g_autoptr(GError) error = NULL;
-            if (!g_dbus_connection_emit_signal (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+            if (!g_dbus_connection_emit_signal (dbus_conn,
                                                 NULL,
                                                 seat->path,
                                                 "org.freedesktop.DBus.Properties",
@@ -576,12 +577,12 @@ handle_command (const gchar *command)
     else if (strcmp (name, "REMOVE-SEAT") == 0)
     {
         const gchar *id = g_hash_table_lookup (params, "ID");
-        remove_login1_seat (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL), id);
+        remove_login1_seat (dbus_conn, id);
     }
     else if (strcmp (name, "LIST-SEATS") == 0)
     {
         g_autoptr(GError) error = NULL;
-        g_autoptr(GVariant) result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_autoptr(GVariant) result = g_dbus_connection_call_sync (dbus_conn,
                                                                   "org.freedesktop.DisplayManager",
                                                                   "/org/freedesktop/DisplayManager",
                                                                   "org.freedesktop.DBus.Properties",
@@ -627,7 +628,7 @@ handle_command (const gchar *command)
     else if (strcmp (name, "LIST-SESSIONS") == 0)
     {
         g_autoptr(GError) error = NULL;
-        g_autoptr(GVariant) result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_autoptr(GVariant) result = g_dbus_connection_call_sync (dbus_conn,
                                                                   "org.freedesktop.DisplayManager",
                                                                   "/org/freedesktop/DisplayManager",
                                                                   "org.freedesktop.DBus.Properties",
@@ -673,7 +674,7 @@ handle_command (const gchar *command)
     else if (strcmp (name, "SEAT-CAN-SWITCH") == 0)
     {
         g_autoptr(GError) error = NULL;
-        g_autoptr(GVariant) result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_autoptr(GVariant) result = g_dbus_connection_call_sync (dbus_conn,
                                                                   "org.freedesktop.DisplayManager",
                                                                   "/org/freedesktop/DisplayManager/Seat0",
                                                                   "org.freedesktop.DBus.Properties",
@@ -705,7 +706,7 @@ handle_command (const gchar *command)
     else if (strcmp (name, "SEAT-HAS-GUEST-ACCOUNT") == 0)
     {
         g_autoptr(GError) error = NULL;
-        g_autoptr(GVariant) result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_autoptr(GVariant) result = g_dbus_connection_call_sync (dbus_conn,
                                                                   "org.freedesktop.DisplayManager",
                                                                   "/org/freedesktop/DisplayManager/Seat0",
                                                                   "org.freedesktop.DBus.Properties",
@@ -736,7 +737,7 @@ handle_command (const gchar *command)
     }
     else if (strcmp (name, "SWITCH-TO-GREETER") == 0)
     {
-        g_dbus_connection_call (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_dbus_connection_call (dbus_conn,
                                 "org.freedesktop.DisplayManager",
                                 "/org/freedesktop/DisplayManager/Seat0",
                                 "org.freedesktop.DisplayManager.Seat",
@@ -752,7 +753,7 @@ handle_command (const gchar *command)
     else if (strcmp (name, "SWITCH-TO-USER") == 0)
     {
         const gchar *username = g_hash_table_lookup (params, "USERNAME");
-        g_dbus_connection_call (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_dbus_connection_call (dbus_conn,
                                 "org.freedesktop.DisplayManager",
                                 "/org/freedesktop/DisplayManager/Seat0",
                                 "org.freedesktop.DisplayManager.Seat",
@@ -767,7 +768,7 @@ handle_command (const gchar *command)
     }
     else if (strcmp (name, "SWITCH-TO-GUEST") == 0)
     {
-        g_dbus_connection_call (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_dbus_connection_call (dbus_conn,
                                 "org.freedesktop.DisplayManager",
                                 "/org/freedesktop/DisplayManager/Seat0",
                                 "org.freedesktop.DisplayManager.Seat",
@@ -1206,14 +1207,13 @@ static void
 start_upower_daemon (void)
 {
     service_count++;
-    g_bus_own_name (G_BUS_TYPE_SYSTEM,
-                    "org.freedesktop.UPower",
-                    G_BUS_NAME_OWNER_FLAGS_NONE,
-                    NULL,
-                    upower_name_acquired_cb,
-                    NULL,
-                    NULL,
-                    NULL);
+    g_bus_own_name_on_connection (dbus_conn,
+                                  "org.freedesktop.UPower",
+                                  G_BUS_NAME_OWNER_FLAGS_NONE,
+                                  upower_name_acquired_cb,
+                                  NULL,
+                                  NULL,
+                                  NULL);
 }
 
 static void
@@ -1490,14 +1490,13 @@ static void
 start_console_kit_daemon (void)
 {
     service_count++;
-    g_bus_own_name (G_BUS_TYPE_SYSTEM,
-                    "org.freedesktop.ConsoleKit",
-                    G_BUS_NAME_OWNER_FLAGS_NONE,
-                    NULL,
-                    ck_name_acquired_cb,
-                    NULL,
-                    NULL,
-                    NULL);
+    g_bus_own_name_on_connection (dbus_conn,
+                                  "org.freedesktop.ConsoleKit",
+                                  G_BUS_NAME_OWNER_FLAGS_NONE,
+                                  ck_name_acquired_cb,
+                                  NULL,
+                                  NULL,
+                                  NULL);
 }
 
 static void
@@ -1952,14 +1951,13 @@ static void
 start_login1_daemon (void)
 {
     service_count++;
-    g_bus_own_name (G_BUS_TYPE_SYSTEM,
-                    "org.freedesktop.login1",
-                    G_BUS_NAME_OWNER_FLAGS_NONE,
-                    NULL,
-                    login1_name_acquired_cb,
-                    NULL,
-                    NULL,
-                    NULL);
+    g_bus_own_name_on_connection (dbus_conn,
+                                  "org.freedesktop.login1",
+                                  G_BUS_NAME_OWNER_FLAGS_NONE,
+                                  login1_name_acquired_cb,
+                                  NULL,
+                                  NULL,
+                                  NULL);
 }
 
 static AccountsUser *
@@ -2356,14 +2354,13 @@ static void
 start_accounts_service_daemon (void)
 {
     service_count++;
-    g_bus_own_name (G_BUS_TYPE_SYSTEM,
-                    "org.freedesktop.Accounts",
-                    G_BUS_NAME_OWNER_FLAGS_NONE,
-                    NULL,
-                    accounts_name_acquired_cb,
-                    NULL,
-                    NULL,
-                    NULL);
+    g_bus_own_name_on_connection (dbus_conn,
+                                  "org.freedesktop.Accounts",
+                                  G_BUS_NAME_OWNER_FLAGS_NONE,
+                                  accounts_name_acquired_cb,
+                                  NULL,
+                                  NULL,
+                                  NULL);
 }
 
 static void
@@ -2773,6 +2770,8 @@ main (int argc, char **argv)
     if (g_key_file_has_key (config, "test-runner-config", "timeout", NULL))
         status_timeout_ms = g_key_file_get_integer (config, "test-runner-config", "timeout", NULL) * 1000;
 
+    dbus_conn = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL);
+
     /* Start D-Bus services */
     if (!g_key_file_get_boolean (config, "test-runner-config", "disable-upower", NULL))
         start_upower_daemon ();
@@ -2786,7 +2785,7 @@ main (int argc, char **argv)
     /* Listen for daemon bus events */
     if (g_key_file_get_boolean (config, "test-runner-config", "log-dbus", NULL))
     {
-        g_dbus_connection_signal_subscribe (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_dbus_connection_signal_subscribe (dbus_conn,
                                             "org.freedesktop.DisplayManager",
                                             "org.freedesktop.DBus.Properties",
                                             "PropertiesChanged",
@@ -2796,7 +2795,7 @@ main (int argc, char **argv)
                                             properties_changed_cb,
                                             NULL,
                                             NULL);
-        g_dbus_connection_signal_subscribe (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
+        g_dbus_connection_signal_subscribe (dbus_conn,
                                             "org.freedesktop.DisplayManager",
                                             "org.freedesktop.DisplayManager",
                                             NULL,
