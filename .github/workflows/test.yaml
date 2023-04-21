@@ -10,23 +10,25 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - ubuntu:rolling
-          - fedora:latest
+          - name: ubuntu
+            tag: rolling
+          - name: fedora
+            tag: latest
 
     runs-on: ubuntu-latest
-    container: ${{ matrix.image }}
+    container: ${{ matrix.image.name }}:${{ matrix.image.tag }}
 
     steps:
       - uses: actions/checkout@v3
 
       - name: Install dependencies (Ubuntu)
-        if: startsWith(matrix.image, 'ubuntu:')
+        if: matrix.image.name == 'ubuntu'
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends dbus gtk-doc-tools intltool libaudit-dev libgcrypt20-dev libgirepository1.0-dev libglib2.0-dev libpam0g-dev libtool libxcb1-dev libxdmcp-dev libxklavier-dev python3 python3-gi python-is-python3 qtbase5-dev valac yelp-tools
 
       - name: Install dependencies (Fedora)
-        if: startsWith(matrix.image, 'fedora:')
+        if: matrix.image.name == 'fedora'
         run: |
           dnf install -y audit-libs-devel dbus-daemon gcc gcc-c++ gobject-introspection-devel glib2-devel gtk-doc intltool libgcrypt-devel libtool libxcb-devel libxklavier-devel libXdmcp-devel make pam-devel python3-gobject qt5-qtbase-devel redhat-rpm-config vala yelp-tools
 
@@ -40,5 +42,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v3
         with:
-          name: Test Log
+          name: Test Log ${{ matrix.image.name }} ${{ matrix.image.tag }}
           path: tests/test-suite.log
