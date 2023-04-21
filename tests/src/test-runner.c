@@ -1209,8 +1209,8 @@ start_upower_daemon (void)
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
                     "org.freedesktop.UPower",
                     G_BUS_NAME_OWNER_FLAGS_NONE,
-                    upower_name_acquired_cb,
                     NULL,
+                    upower_name_acquired_cb,
                     NULL,
                     NULL,
                     NULL);
@@ -2359,8 +2359,8 @@ start_accounts_service_daemon (void)
     g_bus_own_name (G_BUS_TYPE_SYSTEM,
                     "org.freedesktop.Accounts",
                     G_BUS_NAME_OWNER_FLAGS_NONE,
-                    accounts_name_acquired_cb,
                     NULL,
+                    accounts_name_acquired_cb,
                     NULL,
                     NULL,
                     NULL);
