@@ -38,7 +38,7 @@ jobs:
 
       - name: Upload Test Log
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Test Log
           path: tests/test-suite.log
