@@ -210,17 +210,20 @@ redirect_path (const gchar *path)
     /*
      * Don't redirect /tmp/dbus-* so that the test runner and its invoked
      * LightDM can interact with the D-Bus daemon launched by dbus-env.c.  The
-     * D-Bus config has <listen>unix:tmpdir=/tmp</listen>, and with that config
-     * the D-Bus specification [1] says that the daemon will create a socket
+     * D-Bus config has <listen>unix:dir=/tmp</listen>, and with that config the
+     * D-Bus specification [1] says that the daemon will create a socket file
      * whose name matches /tmp/dbus-*.
      *
-     * (With unix:tmpdir, dbus-daemon is allowed, but not required, to create
-     * abstract sockets instead of file-based sockets.  Abstract sockets are
-     * unaffected by the redirection of /tmp to $LIGHTDM_TEST_ROOT because they
-     * don't actually exist in the filesystem.  An exception is required here
-     * anyway because not all systems support abstract sockets, and starting
-     * with v1.15.2 dbus-daemon doesn't use abstract sockets even on systems
-     * that support them [2].)
+     * (If the configs had unix:tmpdir instead of unix:dir, dbus-daemon would be
+     * allowed, but not required, to create abstract sockets instead of
+     * file-based sockets.  Abstract sockets are unaffected by the redirection
+     * of /tmp to $LIGHTDM_TEST_ROOT because they don't actually exist in the
+     * filesystem.  That seems like a good feature in this case, but not all
+     * systems support abstract sockets, and starting with v1.15.2 dbus-daemon
+     * doesn't use abstract sockets even on systems that support them [2].
+     * Thus, an exception for /tmp/dbus-* is required here regardless.  To avoid
+     * platform-specific cold code paths, unix:dir is used to force the use of
+     * normal socket files.)
      *
      * [1] https://dbus.freedesktop.org/doc/dbus-specification.html#transports-unix-domain-sockets-addresses
      * [2] https://gitlab.freedesktop.org/dbus/dbus/-/blob/35ade3c8f7aca16d1c6289828a2597859d1c503b/NEWS#L129-L147
