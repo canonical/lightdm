@@ -148,7 +148,7 @@ lightdm_get_os_version (void)
 /**
  * lightdm_get_os_version_id:
  *
- * Get a word descibing the OS version, suitable for checking which version of the OS this greeter is running on.
+ * Get a word describing the OS version, suitable for checking which version of the OS this greeter is running on.
  * e.g. "16.04"
  *
  * Return value: (nullable): a string (VERSION_ID variable from /etc/os-release) or %NULL if not set.

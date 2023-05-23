@@ -237,7 +237,7 @@ lightdm (1.21.1-0ubuntu1) zesty; urgency=medium
   * New upstream release:
     - Fix greeters crashing with unknown configuration keys (regression from
       1.21.0) (LP: #1643276)
-    - Add an API verison to the greeter-daemon protocol for future enhancements
+    - Add an API version to the greeter-daemon protocol for future enhancements
     - More regression tests
 
  -- Robert Ancell <robert.ancell@canonical.com>  Wed, 23 Nov 2016 09:47:00 +1300
@@ -824,7 +824,7 @@ lightdm (1.11.2-0ubuntu1) utopic; urgency=medium
 lightdm (1.11.1-0ubuntu1) utopic; urgency=medium
 
   * New upstream release:
-    - Allow greeters to remain runing to reduce startup time when switching to a
+    - Allow greeters to remain running to reduce startup time when switching to a
       greeter
     - Add asynchronous methods to liblightdm 
   * debian/lightdm.upstart:
@@ -1350,14 +1350,14 @@ lightdm (1.7.0-0ubuntu3) saucy; urgency=low
 
   * Switch to unversioned -dev package for liblightdm-qt to match Debian and
     avoid having to change other packages synced from Debian
-  * Swtich Conflicts to Breaks and add liblightdm-qt-3-dev to Breaks/Replaces
+  * Switch Conflicts to Breaks and add liblightdm-qt-3-dev to Breaks/Replaces
 
  -- Scott Kitterman <scott@kitterman.com>  Fri, 24 May 2013 00:37:06 -0400
 
 lightdm (1.7.0-0ubuntu2) saucy; urgency=low
 
   * Cherry-pick patches from upstream to fix liblightdm-qt{,5} pcfiles. 
-  * Refresh patches to apply cleanly 
+  * Refresh patches to apply cleanly
 
  -- Iain Lane <iain.lane@canonical.com>  Tue, 07 May 2013 17:36:29 +0100
 
@@ -2310,7 +2310,7 @@ lightdm (0.9.3-0ubuntu3) oneiric; urgency=low
 
 lightdm (0.9.3-0ubuntu2) oneiric; urgency=low
 
-  * Backport mterry's changes to the gdmflexiserver functionnality
+  * Backport mterry's changes to the gdmflexiserver functionality
   * debian/control: default to the unity greeter (lp: #809710)
   * debian/lightdm.install: install the new files
 
@@ -2348,7 +2348,7 @@ lightdm (0.9.3-0ubuntu1) oneiric; urgency=low
     - stop the build if the liblightdm-gobject symbols are outdated
     - use dh-translations to generate the translations template
   * debian/source_lightdm.py:
-    - get bug informations for apport, thanks Pedro Villavicencio (lp: #819954)
+    - get bug information for apport, thanks Pedro Villavicencio (lp: #819954)
 
   [ Didier Roche ]
   * debian/watch:
@@ -2469,7 +2469,7 @@ lightdm (0.4.4-0ubuntu1) oneiric; urgency=low
     - When using system authority the authority can be updated by the user.
       (LP: #795046)
     - Written X authority files now checks hostname and display number.
-    - Enironment is no longer passed through to X servers and sessions, this is
+    - Environment is no longer passed through to X servers and sessions, this is
       no longer required now PAM works correctly.
     - liblightdm API changes:
       - Drop ldm_greeter_get_is_first() - it was added for testing and doesn't

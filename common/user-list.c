@@ -971,7 +971,7 @@ common_user_list_get_users (CommonUserList *user_list)
  * @user_list: A #CommonUserList
  * @username: Name of user to get.
  *
- * Get infomation about a given user or #NULL if this user doesn't exist.
+ * Get information about a given user or #NULL if this user doesn't exist.
  * Includes hidden and system users, unlike the list from
  * common_user_list_get_users.
  *
