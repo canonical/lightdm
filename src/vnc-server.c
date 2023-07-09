@@ -126,18 +126,10 @@ vnc_server_start (VNCServer *server)
 
     g_return_val_if_fail (server != NULL, FALSE);
 
-    g_autoptr(GError) ipv4_error = NULL;
-    priv->socket = open_tcp_socket (G_SOCKET_FAMILY_IPV4, priv->port, priv->listen_address, &ipv4_error);
-    if (ipv4_error)
-        g_warning ("Failed to create IPv4 VNC socket: %s", ipv4_error->message);
-
-    if (priv->socket)
-    {
-        GSource *source = g_socket_create_source (priv->socket, G_IO_IN, NULL);
-        g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
-        g_source_attach (source, NULL);
-    }
-
+    // Bind to IPv6 first, as this implies binding to 0.0.0.0 in the
+    // Linux kernel default configuration, which would otherwise cause
+    // IPv6 clients to fail with "Error binding to address [::]:5900:
+    // Address already in use" (#266).
     g_autoptr(GError) ipv6_error = NULL;
     priv->socket6 = open_tcp_socket (G_SOCKET_FAMILY_IPV6, priv->port, priv->listen_address, &ipv6_error);
     if (ipv6_error)
@@ -146,6 +138,18 @@ vnc_server_start (VNCServer *server)
     if (priv->socket6)
     {
         GSource *source = g_socket_create_source (priv->socket6, G_IO_IN, NULL);
+        g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
+        g_source_attach (source, NULL);
+    }
+
+    g_autoptr(GError) ipv4_error = NULL;
+    priv->socket = open_tcp_socket (G_SOCKET_FAMILY_IPV4, priv->port, priv->listen_address, &ipv4_error);
+    if (ipv4_error)
+        g_warning ("Failed to create IPv4 VNC socket: %s", ipv4_error->message);
+
+    if (priv->socket)
+    {
+        GSource *source = g_socket_create_source (priv->socket, G_IO_IN, NULL);
         g_source_set_callback (source, (GSourceFunc) read_cb, server, NULL);
         g_source_attach (source, NULL);
     }
