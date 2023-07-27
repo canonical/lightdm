@@ -80,6 +80,8 @@ gboolean login1_seat_get_can_graphical (Login1Seat *seat);
 
 gboolean login1_seat_get_can_multi_session (Login1Seat *seat);
 
+gboolean login1_seat_get_can_tty (Login1Seat *seat);
+
 G_END_DECLS
 
 #endif /* _LOGIN1_H_ */

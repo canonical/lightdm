@@ -120,7 +120,7 @@ display_server_transition_plymouth_cb (DisplayServer *display_server, Seat *seat
 static gint
 get_vt (SeatLocal *seat, DisplayServer *display_server)
 {
-    if (strcmp (seat_get_name (SEAT (seat)), "seat0") != 0)
+    if (strcmp (seat_get_name (SEAT (seat)), "seat0") != 0 || !seat_get_can_tty ( SEAT (seat)))
         return -1;
 
     /* If Plymouth is running, stop it */
@@ -270,7 +270,7 @@ seat_local_get_active_session (Seat *seat)
      * FIXME: Use seat_get_expected_active_session even for seat0, falling back
      * to VT probing if the systemd-logind service is unavailable.
      */
-    if (strcmp (seat_get_name (seat), "seat0") != 0)
+    if (strcmp (seat_get_name (seat), "seat0") != 0 || !seat_get_can_tty (seat))
         return seat_get_expected_active_session (seat);
 
     gint vt = vt_get_active ();

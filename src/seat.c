@@ -39,6 +39,9 @@ typedef struct
     /* TRUE if this seat can run multiple sessions at once */
     gboolean supports_multi_session;
 
+    /* TRUE if this seat has TTYs */
+    gboolean can_tty;
+
     /* TRUE if display server can be shared for sessions */
     gboolean share_display_server;
 
@@ -207,6 +210,14 @@ seat_set_share_display_server (Seat *seat, gboolean share_display_server)
     priv->share_display_server = share_display_server;
 }
 
+void
+seat_set_can_tty (Seat *seat, gboolean can_tty)
+{
+    SeatPrivate *priv = seat_get_instance_private (seat);
+    g_return_if_fail (seat != NULL);
+    priv->can_tty = can_tty;
+}
+
 gboolean
 seat_start (Seat *seat)
 {
@@ -355,6 +366,14 @@ seat_get_can_switch (Seat *seat)
     SeatPrivate *priv = seat_get_instance_private (seat);
     g_return_val_if_fail (seat != NULL, FALSE);
     return seat_get_boolean_property (seat, "allow-user-switching") && priv->supports_multi_session;
+}
+
+gboolean
+seat_get_can_tty (Seat *seat)
+{
+    SeatPrivate *priv = seat_get_instance_private (seat);
+    g_return_val_if_fail (seat != NULL, FALSE);
+    return priv->can_tty;
 }
 
 gboolean
