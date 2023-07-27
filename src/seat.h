@@ -83,6 +83,8 @@ void seat_set_supports_multi_session (Seat *seat, gboolean supports_multi_sessio
 
 void seat_set_share_display_server (Seat *seat, gboolean share_display_server);
 
+void seat_set_can_tty (Seat *seat, gboolean can_tty);
+
 gboolean seat_start (Seat *seat);
 
 GList *seat_get_sessions (Seat *seat);
@@ -100,6 +102,8 @@ Session *seat_get_expected_active_session (Seat *seat);
 Session *seat_find_session_by_login1_id (Seat *seat, const gchar *login1_session_id);
 
 gboolean seat_get_can_switch (Seat *seat);
+
+gboolean seat_get_can_tty (Seat *seat);
 
 gboolean seat_get_allow_guest (Seat *seat);
 
