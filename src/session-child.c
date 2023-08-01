@@ -16,6 +16,7 @@
 #include <utmp.h>
 #include <utmpx.h>
 #include <sys/mman.h>
+#include <locale.h>
 
 #if HAVE_LIBAUDIT
 #include <libaudit.h>
@@ -293,6 +294,8 @@ session_child_run (int argc, char **argv)
     g_autofree gchar *remote_host_name = read_string ();
     g_autofree gchar *xdisplay = read_string ();
     g_autoptr(XAuthority) x_authority = read_xauth ();
+
+    setlocale (LC_ALL, "");
 
     /* Setup PAM */
     struct pam_conv conversation = { pam_conv_cb, NULL };
