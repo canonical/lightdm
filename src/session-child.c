@@ -603,8 +603,13 @@ session_child_run (int argc, char **argv)
     if (x_authority)
     {
         gboolean drop_privileges = geteuid () == 0;
-        if (drop_privileges)
+        if (drop_privileges) {
+            if (x_authority_filename && chown (x_authority_filename, user_get_uid (user), user_get_gid (user)) < 0)
+                g_warning ("Failed to set ownership of user authority file: %s", strerror (errno));
             privileges_drop (user_get_uid (user), user_get_gid (user));
+            if (x_authority_filename && chmod (x_authority_filename, S_IRUSR | S_IWUSR) < 0)
+                g_warning ("Failed to set access of user authority file: %s", strerror (errno));
+        }
 
         g_autoptr(GError) error = NULL;
         gboolean result = x_authority_write (x_authority, XAUTH_WRITE_MODE_REPLACE, x_authority_filename, &error);
