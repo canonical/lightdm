@@ -812,7 +812,7 @@ session_real_run (Session *session)
         x_authority_filename = g_build_filename (dir, "xauthority", NULL);
     }
     else
-        x_authority_filename = g_build_filename (user_get_home_directory (session_get_user (session)), ".Xauthority", NULL);
+        x_authority_filename = g_strdup (".Xauthority");
 
     /* Make sure shared user directory for this user exists */
     if (!priv->remote_host_name)
