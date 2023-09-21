@@ -538,6 +538,12 @@ session_child_run (int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    /* try to get HOME from PAM since it might have been changed */
+    const gchar *home_directory = pam_getenv (pam_handle, "HOME");
+    if (!home_directory) {
+        home_directory = user_get_home_directory (user);
+    }
+
     /* Open a connection to the system bus for ConsoleKit - we must keep it open or CK will close the session */
     g_autoptr(GError) error = NULL;
     g_autoptr(GDBusConnection) bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
@@ -602,6 +608,11 @@ session_child_run (int argc, char **argv)
     /* Write X authority */
     if (x_authority)
     {
+        if (!g_path_is_absolute (x_authority_filename)) {
+            gchar *x_authority_filename_new = g_build_filename (home_directory, x_authority_filename, NULL);
+            g_free (x_authority_filename);
+            x_authority_filename = x_authority_filename_new;
+        }
         gboolean drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user_get_uid (user), user_get_gid (user));
@@ -629,7 +640,6 @@ session_child_run (int argc, char **argv)
     /* Run the command as the authenticated user */
     uid_t uid = user_get_uid (user);
     gid_t gid = user_get_gid (user);
-    const gchar *home_directory = user_get_home_directory (user);
     child_pid = fork ();
     if (child_pid == 0)
     {
@@ -651,8 +661,10 @@ session_child_run (int argc, char **argv)
         /* NOTE: This must be done after the permissions are changed because NFS filesystems can
          * be setup so the local root user accesses the NFS files as 'nobody'.  If the home directories
          * are not system readable then the chdir can fail */
-        if (chdir (home_directory) != 0)
+        if (chdir (home_directory) != 0) {
+            g_printerr ("chdir: %s\n", strerror (errno));
             _exit (errno);
+        }
 
         if (log_filename)
         {
