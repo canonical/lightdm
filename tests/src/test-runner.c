@@ -2772,13 +2772,15 @@ main (int argc, char **argv)
         {"corrupt-xauth",    "password",  "Corrupt Xauthority", 1032},
         /* User to test properties */
         {"prop-user",        "",          "TEST",               1033},
+        /* This account has the home directory changed by PAM during authentication */
+        {"change-home-dir",    "",       "Change Home Dir User", 1034},
         {NULL,               NULL,        NULL,                    0}
     };
     g_autoptr(GString) passwd_data = g_string_new ("");
     g_autoptr(GString) group_data = g_string_new ("");
     for (int i = 0; users[i].user_name; i++)
     {
-        if (strcmp (users[i].user_name, "mount-home-dir") != 0 && strcmp (users[i].user_name, "make-home-dir") != 0)
+        if (strcmp (users[i].user_name, "mount-home-dir") != 0 && strcmp (users[i].user_name, "make-home-dir") != 0 && strcmp (users[i].user_name, "change-home-dir") != 0)
         {
             g_autofree gchar *path = g_build_filename (home_dir, users[i].user_name, NULL);
             g_mkdir_with_parents (path, 0755);

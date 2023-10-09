@@ -256,7 +256,8 @@ TESTS = \
 	test-wayland-greeter \
 	test-wayland-session \
 	test-invalid-seat \
-	test-seatdefaults-still-supported
+	test-seatdefaults-still-supported \
+	test-change-home-dir-on-session
 
 #	test-switch-to-greeter-return-session-repeat
 #	test-session-exit-error
@@ -389,6 +390,7 @@ EXTRA_DIST = \
 	scripts/autologin-timeout-logout.conf \
 	scripts/autologin-xserver-crash.conf \
 	scripts/change-authentication.conf \
+	scripts/change-home-dir-on-session.conf \
 	scripts/cancel-authentication.conf \
 	scripts/console-kit.conf \
 	scripts/console-kit-no-xdg-runtime.conf \

@@ -1285,6 +1285,27 @@ pam_open_session (pam_handle_t *pamh, int flags)
         g_mkdir_with_parents (entry->pw_dir, 0755);
     }
 
+    if (strcmp (pamh->user, "change-home-dir") == 0)
+    {
+        struct passwd *entry = getpwnam (pamh->user);
+
+        /* Actual home dir is changed by PAM, differing from passwd, strip off
+           trailing /home/<user> and replace with /users/<user> */
+        const char *endp = pamh->user;
+        int slashes = 0;
+        while (*endp++ != '\0');
+        while (slashes < 2 && endp > pamh->user) {
+                if (*endp-- == '/')
+                        slashes++;
+        }
+        g_autofree gchar *changed_home = g_strdup_printf("%.*s/users/%s\n", (int)(endp - entry->pw_dir), entry->pw_dir, pamh->user);
+
+        g_mkdir_with_parents (changed_home, 0755);
+
+        g_autofree gchar *e = g_strdup_printf ("HOME=%s", changed_home);
+        pam_putenv (pamh, e);
+    }
+
     /* Open logind session */
     g_autoptr(GError) error = NULL;
     g_autoptr(GVariant) result = g_dbus_connection_call_sync (g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, NULL),
