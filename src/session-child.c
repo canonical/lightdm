@@ -543,6 +543,8 @@ session_child_run (int argc, char **argv)
     if (!home_directory) {
         home_directory = user_get_home_directory (user);
     }
+    if (version >= 4)
+        write_string (home_directory);
 
     /* Open a connection to the system bus for ConsoleKit - we must keep it open or CK will close the session */
     g_autoptr(GError) error = NULL;

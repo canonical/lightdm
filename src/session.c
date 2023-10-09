@@ -59,6 +59,9 @@ typedef struct
     /* User to authenticate as */
     gchar *username;
 
+    /* Home directory of the authenticating user */
+    gchar *home_directory;
+
     /* TRUE if is a guest account */
     gboolean is_guest;
 
@@ -644,7 +647,7 @@ session_real_start (Session *session)
     close (from_child_input);
 
     /* Indicate what version of the protocol we are using */
-    int version = 3;
+    int version = 4;
     write_data (session, &version, sizeof (version));
 
     /* Send configuration */
@@ -669,6 +672,14 @@ session_get_username (Session *session)
     SessionPrivate *priv = session_get_instance_private (session);
     g_return_val_if_fail (session != NULL, NULL);
     return priv->username;
+}
+
+const gchar *
+session_get_home_directory (Session *session)
+{
+    SessionPrivate *priv = session_get_instance_private (session);
+    g_return_val_if_fail (session != NULL, NULL);
+    return priv->home_directory;
 }
 
 const gchar *
@@ -863,6 +874,14 @@ session_real_run (Session *session)
     for (gsize i = 0; i < argc; i++)
         write_string (session, priv->argv[i]);
 
+    /* Get the home directory of the user currently being authenticated (may change after opening PAM session) */
+    g_autofree gchar *home_directory = read_string_from_child (session);
+    if (g_strcmp0 (home_directory, priv->home_directory) != 0)
+    {
+        g_free (priv->home_directory);
+        priv->home_directory = g_steal_pointer (&home_directory);
+    }
+
     priv->login1_session_id = read_string_from_child (session);
     priv->console_kit_cookie = read_string_from_child (session);
 }
@@ -1005,6 +1024,7 @@ session_finalize (GObject *object)
     if (priv->child_watch)
         g_source_remove (priv->child_watch);
     g_clear_pointer (&priv->username, g_free);
+    g_clear_pointer (&priv->home_directory, g_free);
     g_clear_object (&priv->user);
     g_clear_pointer (&priv->pam_service, g_free);
     for (size_t i = 0; i < priv->messages_length; i++)

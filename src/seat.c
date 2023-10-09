@@ -365,7 +365,7 @@ seat_get_allow_guest (Seat *seat)
 }
 
 static gboolean
-run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name, User *user)
+run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name, User *user, const gchar *home_directory)
 {
     g_autoptr(Process) script = process_new (NULL, NULL);
 
@@ -392,7 +392,7 @@ run_script (Seat *seat, DisplayServer *display_server, const gchar *script_name,
     {
         process_set_env (script, "USER", user_get_name (user));
         process_set_env (script, "LOGNAME", user_get_name (user));
-        process_set_env (script, "HOME", user_get_home_directory (user));
+        process_set_env (script, "HOME", home_directory ? home_directory : user_get_home_directory (user));
     }
     else
         process_set_env (script, "HOME", "/");
@@ -457,7 +457,7 @@ display_server_stopped_cb (DisplayServer *display_server, Seat *seat)
     /* Run a script right after stopping the display server */
     const gchar *script = seat_get_string_property (seat, "display-stopped-script");
     if (script)
-        run_script (seat, NULL, script, NULL);
+        run_script (seat, NULL, script, NULL, NULL);
 
     g_signal_handlers_disconnect_matched (display_server, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, seat);
     priv->display_servers = g_list_remove (priv->display_servers, display_server);
@@ -654,7 +654,7 @@ run_session (Seat *seat, Session *session)
         script = seat_get_string_property (seat, "greeter-setup-script");
     else
         script = seat_get_string_property (seat, "session-setup-script");
-    if (script && !run_script (seat, session_get_display_server (session), script, session_get_user (session)))
+    if (script && !run_script (seat, session_get_display_server (session), script, session_get_user (session), session_get_home_directory (session)))
     {
         l_debug (seat, "Switching to greeter due to failed setup script");
         switch_to_greeter_from_failed_session (seat, session);
@@ -778,7 +778,7 @@ session_stopped_cb (Session *session, Seat *seat)
     {
         const gchar *script = seat_get_string_property (seat, "session-cleanup-script");
         if (script)
-            run_script (seat, display_server, script, session_get_user (session));
+            run_script (seat, display_server, script, session_get_user (session), session_get_home_directory (session));
     }
 
     if (priv->stopping)
@@ -1324,7 +1324,7 @@ display_server_ready_cb (DisplayServer *display_server, Seat *seat)
 {
     /* Run setup script */
     const gchar *script = seat_get_string_property (seat, "display-setup-script");
-    if (script && !run_script (seat, display_server, script, NULL))
+    if (script && !run_script (seat, display_server, script, NULL, NULL))
     {
         l_debug (seat, "Stopping display server due to failed setup script");
         display_server_stop (display_server);
