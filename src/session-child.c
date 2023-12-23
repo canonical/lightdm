@@ -16,6 +16,9 @@
 #include <utmp.h>
 #include <utmpx.h>
 #include <sys/mman.h>
+#if HAVE_SETUSERCONTEXT
+#include <login_cap.h>
+#endif
 
 #if HAVE_LIBAUDIT
 #include <libaudit.h>
@@ -637,6 +640,29 @@ session_child_run (int argc, char **argv)
         if (setsid () < 0)
             _exit (errno);
 
+#if HAVE_SETUSERCONTEXT
+        /* Setup user context
+        * Reset the current environment to what is in the PAM context,
+        * then setusercontext will add to it as necessary as there is no
+        * option for setusercontext to add to a PAM context.
+        */
+        extern char **environ;
+        environ = pam_getenvlist (pam_handle);
+        struct passwd* pwd = getpwnam (username);
+        if (pwd) {
+            if (setusercontext (NULL, pwd, pwd->pw_uid, LOGIN_SETALL) < 0) {
+                int _errno = errno;
+                fprintf(stderr, "setusercontext for \"%s\" (%d) failed: %s\n",
+                    username, user_get_uid (user), strerror (errno));
+                _exit (_errno);
+            }
+            endpwent();
+        } else {
+            fprintf (stderr, "getpwname for \"%s\" failed: %s\n",
+                username, strerror (errno));
+            _exit (ENOENT);
+        }
+#else
         /* Change to this user */
         if (getuid () == 0)
         {
@@ -646,7 +672,7 @@ session_child_run (int argc, char **argv)
             if (setuid (uid) != 0)
                 _exit (errno);
         }
-
+#endif
         /* Change working directory */
         /* NOTE: This must be done after the permissions are changed because NFS filesystems can
          * be setup so the local root user accesses the NFS files as 'nobody'.  If the home directories
@@ -668,7 +694,13 @@ session_child_run (int argc, char **argv)
         signal (SIGPIPE, SIG_DFL);
 
         /* Run the command */
-        execve (command_argv[0], command_argv, pam_getenvlist (pam_handle));
+        execve (command_argv[0], command_argv,
+#if HAVE_SETUSERCONTEXT
+            environ
+#else
+            pam_getenvlist (pam_handle)
+#endif
+        );
         _exit (EXIT_FAILURE);
     }
 
