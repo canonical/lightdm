@@ -2,7 +2,7 @@
 Description=Light Display Manager
 Documentation=man:lightdm(1)
 Conflicts=getty@tty7.service plymouth-quit.service
-After=systemd-user-sessions.service getty@tty7.service plymouth-quit.service
+After=systemd-user-sessions.service getty@tty7.service plymouth-quit.service systemd-hostnamed.service
 
 [Service]
 # temporary safety check until all DMs are converted to correct
