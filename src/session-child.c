@@ -602,6 +602,13 @@ session_child_run (int argc, char **argv)
     /* Write X authority */
     if (x_authority)
     {
+        /* If XDG_RUNTIME_DIR is set and user-authority-in-system-dir=false than use
+         * XDG_RUNTIME_DIR to store .Xauthority file. */
+        const gchar *runtime_dir = pam_getenv (pam_handle, "XDG_RUNTIME_DIR");
+        if (runtime_dir && x_authority_filename && g_str_has_suffix (x_authority_filename, ".Xauthority")) {
+            x_authority_filename = g_build_filename (runtime_dir, ".Xauthority", NULL);
+        }
+
         gboolean drop_privileges = geteuid () == 0;
         if (drop_privileges)
             privileges_drop (user_get_uid (user), user_get_gid (user));
