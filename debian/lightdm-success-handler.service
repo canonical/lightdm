@@ -5,7 +5,7 @@ After=lightdm.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'test -f /etc/issue.restore && mv /etc/issue.restore /etc/issue || echo -e "Linux \\\\r (\\\\l)\n\n" > /etc/issue'
+ExecStart=/bin/sh -c 'test -f /etc/issue.restore && mv /etc/issue.restore /etc/issue || echo "File /etc/issue.restore not found. No restore action needed."'
 
 [Install]
 WantedBy=graphical.target
