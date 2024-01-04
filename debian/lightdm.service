@@ -3,7 +3,7 @@ Description=Light Display Manager
 Documentation=man:lightdm(1)
 Conflicts=getty@tty7.service plymouth-quit.service
 After=systemd-user-sessions.service getty@tty7.service plymouth-quit.service systemd-hostnamed.service
-StartLimitInterval=60s
+StartLimitIntervalSec=60s
 StartLimitBurst=5
 OnFailure=lightdm-failure-handler.service
 
