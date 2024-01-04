@@ -3,6 +3,9 @@ Description=Light Display Manager
 Documentation=man:lightdm(1)
 Conflicts=getty@tty7.service plymouth-quit.service
 After=systemd-user-sessions.service getty@tty7.service plymouth-quit.service systemd-hostnamed.service
+StartLimitInterval=60s
+StartLimitBurst=5
+OnFailure=lightdm-failure-handler.service
 
 [Service]
 # temporary safety check until all DMs are converted to correct
@@ -10,4 +13,5 @@ After=systemd-user-sessions.service getty@tty7.service plymouth-quit.service sys
 ExecStartPre=/bin/sh -c '[ "$(basename $(cat /etc/X11/default-display-manager 2>/dev/null))" = "lightdm" ]'
 ExecStart=/usr/sbin/lightdm
 Restart=always
+RestartSec=15s
 BusName=org.freedesktop.DisplayManager
