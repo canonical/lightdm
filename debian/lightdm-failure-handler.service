@@ -1,0 +1,9 @@
+[Unit]
+Description=Handle LightDM failure
+
+[Service]
+Type=oneshot
+ExecStart=/bin/mv /etc/issue /etc/issue.restore; /bin/sh -c 'echo -e "LightDM has failed to start. You are now in a TTY for troubleshooting...\nYou can log in and check for details in logs." > /etc/issue; /usr/bin/chvt 4'
+
+[Install]
+WantedBy=multi-user.target
