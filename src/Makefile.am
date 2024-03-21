@@ -35,6 +35,8 @@ lightdm_SOURCES = \
 	seat.h \
 	seat-local.c \
 	seat-local.h \
+	seat-wayland-system-compositor.c \
+	seat-wayland-system-compositor.h \
 	seat-xdmcp-session.c \
 	seat-xdmcp-session.h \
 	seat-xremote.c \
@@ -49,6 +51,8 @@ lightdm_SOURCES = \
 	session-config.h \
 	shared-data-manager.c \
 	shared-data-manager.h \
+	wayland-system-compositor.c \
+	wayland-system-compositor.h \
 	vnc-server.c \
 	vnc-server.h \
 	vt.c \

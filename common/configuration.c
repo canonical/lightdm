@@ -366,6 +366,8 @@ config_init (Configuration *config)
     g_hash_table_insert (config->priv->seat_keys, "xdmcp-key", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "unity-compositor-command", GINT_TO_POINTER (KEY_DEPRECATED));
     g_hash_table_insert (config->priv->seat_keys, "unity-compositor-timeout", GINT_TO_POINTER (KEY_DEPRECATED));
+    g_hash_table_insert (config->priv->seat_keys, "wayland-compositor-command", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "wayland-compositor-timeout", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "greeter-session", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "greeter-hide-users", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "greeter-allow-guest", GINT_TO_POINTER (KEY_SUPPORTED));
