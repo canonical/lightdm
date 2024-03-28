@@ -154,8 +154,16 @@ display_number_in_use (guint display_number)
 }
 
 static guint
-x_server_local_get_unused_display_number (void)
+x_server_local_get_unused_display_number (gint desired_display_number)
 {
+    // First attempt to use the requested display number
+    if (desired_display_number >= 0) {
+      if (!display_number_in_use (desired_display_number)) {
+	return desired_display_number;
+      }
+    }
+
+    // Else fall back
     guint number = config_get_integer (config_get_instance (), "LightDM", "minimum-display-number");
     while (display_number_in_use (number))
         number++;
@@ -192,6 +200,16 @@ x_server_local_set_command (XServerLocal *server, const gchar *command)
     g_return_if_fail (server != NULL);
     g_free (priv->command);
     priv->command = g_strdup (command);
+}
+
+void
+x_server_local_init_display_number (XServerLocal *server, gint number)
+{
+    XServerLocalPrivate *priv = x_server_local_get_instance_private (server);
+    g_return_if_fail (server != NULL);
+
+    priv->display_number = x_server_local_get_unused_display_number (number);
+    l_debug (server, "Requested display number %d, actual display number: %d", number, priv->display_number);
 }
 
 void
@@ -574,9 +592,10 @@ static void
 x_server_local_init (XServerLocal *server)
 {
     XServerLocalPrivate *priv = x_server_local_get_instance_private (server);
+
     priv->vt = -1;
     priv->command = g_strdup ("X");
-    priv->display_number = x_server_local_get_unused_display_number ();
+    priv->display_number = -1;
 }
 
 static void

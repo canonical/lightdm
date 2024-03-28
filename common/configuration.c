@@ -354,6 +354,7 @@ config_init (Configuration *config)
     g_hash_table_insert (config->priv->seat_keys, "pam-greeter-service", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "xserver-backend", GINT_TO_POINTER (KEY_DEPRECATED));
     g_hash_table_insert (config->priv->seat_keys, "xserver-command", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "desired-display-number", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "xmir-command", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "xserver-config", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "xserver-layout", GINT_TO_POINTER (KEY_SUPPORTED));

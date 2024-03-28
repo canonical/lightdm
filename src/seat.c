@@ -180,10 +180,17 @@ seat_get_boolean_property (Seat *seat, const gchar *name)
 }
 
 gint
-seat_get_integer_property (Seat *seat, const gchar *name)
+seat_get_integer_property_with_fallback (Seat *seat, const gchar *name, gint fallback)
 {
     const gchar *value = seat_get_string_property (seat, name);
-    return value ? atoi (value) : 0;
+    return value ? atoi (value) : fallback;
+}
+
+
+gint
+seat_get_integer_property (Seat *seat, const gchar *name)
+{
+  return seat_get_integer_property_with_fallback (seat, name, 0);
 }
 
 const gchar *
