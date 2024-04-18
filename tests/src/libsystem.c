@@ -266,6 +266,7 @@ open_wrapper (const char *func, const char *pathname, int flags, mode_t mode)
     return _open (new_path, flags, mode);
 }
 
+#ifndef __USE_FILE_OFFSET64
 int
 open (const char *pathname, int flags, ...)
 {
@@ -279,6 +280,7 @@ open (const char *pathname, int flags, ...)
     }
     return open_wrapper ("open", pathname, flags, mode);
 }
+#endif
 
 int
 open64 (const char *pathname, int flags, ...)
@@ -312,6 +314,7 @@ unlinkat (int dirfd, const char *pathname, int flags)
     return _unlinkat (dirfd, new_path, flags);
 }
 
+#ifndef __USE_FILE_OFFSET64
 int
 creat (const char *pathname, mode_t mode)
 {
@@ -320,6 +323,7 @@ creat (const char *pathname, mode_t mode)
     g_autofree gchar *new_path = redirect_path (pathname);
     return _creat (new_path, mode);
 }
+#endif
 
 int
 creat64 (const char *pathname, mode_t mode)
@@ -344,6 +348,7 @@ access (const char *pathname, int mode)
     return _access (new_path, mode);
 }
 
+#ifndef __USE_FILE_OFFSET64
 int
 stat (const char *path, struct stat *buf)
 {
@@ -352,6 +357,7 @@ stat (const char *path, struct stat *buf)
     g_autofree gchar *new_path = redirect_path (path);
     return _stat (new_path, buf);
 }
+#endif
 
 int
 stat64 (const char *path, struct stat64 *buf)
