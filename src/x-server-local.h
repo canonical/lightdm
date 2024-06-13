@@ -14,6 +14,7 @@
 
 #include "x-server.h"
 #include "process.h"
+#include "accounts.h"
 
 G_BEGIN_DECLS
 
@@ -44,6 +45,8 @@ GType x_server_local_get_type (void);
 XServerLocal *x_server_local_new (void);
 
 void x_server_local_set_command (XServerLocal *server, const gchar *command);
+
+void x_server_local_set_user(XServerLocal *server, User *user);
 
 void x_server_local_set_vt (XServerLocal *server, gint vt);
 
