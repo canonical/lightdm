@@ -294,7 +294,8 @@ x_authority_write (XAuthority *auth, XAuthWriteMode mode, const gchar *filename,
         if (!matched &&
             priv->family == a_priv->family &&
             address_matches &&
-            strcmp (priv->number, a_priv->number) == 0)
+            strcmp (priv->number, a_priv->number) == 0 &&
+            strcmp (priv->authorization_name, a_priv->authorization_name) == 0)
         {
             matched = TRUE;
             if (mode == XAUTH_WRITE_MODE_REMOVE)
