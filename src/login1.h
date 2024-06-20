@@ -24,6 +24,7 @@ G_BEGIN_DECLS
 
 #define LOGIN1_SERVICE_SIGNAL_SEAT_ADDED   "seat-added"
 #define LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED "seat-removed"
+#define LOGIN1_SERVICE_SIGNAL_SEAT_ATTENTION_KEY "seat-attention-key"
 
 #define LOGIN1_SEAT_SIGNAL_CAN_GRAPHICAL_CHANGED "can-graphical-changed"
 #define LOGIN1_SIGNAL_ACTIVE_SESION_CHANGED "active-session-changed"
@@ -50,6 +51,7 @@ typedef struct
     GObjectClass parent_class;
     void (*seat_added)(Login1Service *service, Login1Seat *seat);
     void (*seat_removed)(Login1Service *service, Login1Seat *seat);
+    void (*seat_attention_key)(Login1Service *service, Login1Seat *seat);
 } Login1ServiceClass;
 
 GType login1_service_get_type (void);
