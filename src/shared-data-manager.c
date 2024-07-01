@@ -157,6 +157,10 @@ next_user_dirs_cb (GObject *object, GAsyncResult *res, gpointer user_data)
             CommonUser *user = link->data;
             g_hash_table_remove (priv->starting_dirs, common_user_get_name (user));
         }
+        if(g_hash_table_contains(priv->starting_dirs,"root"))
+        {
+            g_hash_table_remove (priv->starting_dirs,"root");
+        }
         g_hash_table_foreach (priv->starting_dirs, delete_unused_user, manager);
         g_hash_table_destroy (priv->starting_dirs);
         priv->starting_dirs = NULL;
