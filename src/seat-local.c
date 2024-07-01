@@ -151,6 +151,9 @@ create_x_server (SeatLocal *seat)
 {
     g_autoptr(XServerLocal) x_server = x_server_local_new ();
 
+    gint desired_display_number = seat_get_integer_property_with_fallback (SEAT (seat), "desired-display-number", -1);
+    x_server_local_init_display_number (x_server, desired_display_number);
+
     gint vt = get_vt (seat, DISPLAY_SERVER (x_server));
     if (vt >= 0)
         x_server_local_set_vt (x_server, vt);

@@ -45,6 +45,8 @@ XServerLocal *x_server_local_new (void);
 
 void x_server_local_set_command (XServerLocal *server, const gchar *command);
 
+void x_server_local_init_display_number (XServerLocal *server, gint number);
+
 void x_server_local_set_vt (XServerLocal *server, gint vt);
 
 void x_server_local_set_config (XServerLocal *server, const gchar *path);
