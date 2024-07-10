@@ -399,6 +399,7 @@ config_init (Configuration *config)
 
     g_hash_table_insert (config->priv->vnc_keys, "enabled", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->vnc_keys, "command", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->vnc_keys, "user", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->vnc_keys, "port", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->vnc_keys, "listen-address", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->vnc_keys, "width", GINT_TO_POINTER (KEY_SUPPORTED));
