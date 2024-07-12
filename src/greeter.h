@@ -46,6 +46,14 @@ typedef struct
     gboolean (*start_session)(Greeter *greeter, SessionType type, const gchar *session);
 } GreeterClass;
 
+typedef enum
+{
+    BEHAVIOR_IMMEDIATE,
+    BEHAVIOR_RESETTABLE,
+    BEHAVIOR_GRACEFUL,
+    LAST_BEHAVIOR,
+} FinishBehavior;
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (Greeter, g_object_unref)
 
 GType greeter_get_type (void);
@@ -74,7 +82,7 @@ Session *greeter_take_authentication_session (Greeter *greeter);
 
 gboolean greeter_get_start_session (Greeter *greeter);
 
-gboolean greeter_get_resettable (Greeter *greeter);
+FinishBehavior greeter_get_finish_behavior (Greeter *greeter);
 
 const gchar *greeter_get_active_username (Greeter *greeter);
 

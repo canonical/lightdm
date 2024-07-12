@@ -52,6 +52,7 @@ liblightdm-gobject-1.so.0 liblightdm-gobject-1-0 #MINVER#
  lightdm_greeter_respond@Base 0.9.2
  lightdm_greeter_set_language@Base 0.9.8
  lightdm_greeter_set_resettable@Base 1.11.1
+ lightdm_greeter_set_finish_behavior@Base 1.33.0
  lightdm_greeter_start_session@Base 1.11.1
  lightdm_greeter_start_session_finish@Base 1.11.1
  lightdm_greeter_start_session_sync@Base 0.9.2
