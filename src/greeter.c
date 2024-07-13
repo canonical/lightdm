@@ -66,8 +66,8 @@ typedef struct
     /* TRUE if the PAM session is being cancelled */
     gboolean cancelling;
 
-    /* TRUE if a the greeter can handle a reset; else we will just kill it instead */
-    gboolean resettable;
+    /* Defines the finish behavior for the greeter; either to be resettable, killed immediately or terminated gracefully */
+    FinishBehavior finish_behavior;
 
     /* TRUE if a user has been authenticated and the session requested to start */
     gboolean start_session;
@@ -327,14 +327,14 @@ string_length (const gchar *value)
 }
 
 static void
-handle_connect (Greeter *greeter, const gchar *version, gboolean resettable, guint32 api_version)
+handle_connect (Greeter *greeter, const gchar *version, FinishBehavior finish_behavior, guint32 api_version)
 {
     GreeterPrivate *priv = greeter_get_instance_private (greeter);
 
-    g_debug ("Greeter connected version=%s api=%u resettable=%s", version, api_version, resettable ? "true" : "false");
+    g_debug ("Greeter connected version=%s api=%u finish_behavior=%d", version, api_version, finish_behavior);
 
     priv->api_version = api_version;
-    priv->resettable = resettable;
+    priv->finish_behavior = finish_behavior;
 
     guint32 env_length = 0;
     GHashTableIter iter;
@@ -941,13 +941,15 @@ read_cb (GIOChannel *source, GIOCondition condition, gpointer data)
     case GREETER_MESSAGE_CONNECT:
         {
             g_autofree gchar *version = read_string (greeter, &offset);
-            gboolean resettable = FALSE;
+            FinishBehavior finish_behavior = BEHAVIOR_IMMEDIATE;
             if (offset < length)
-                resettable = read_int (greeter, &offset) != 0;
+                finish_behavior = read_int (greeter, &offset);
+            if (finish_behavior >= LAST_BEHAVIOR)
+                finish_behavior = BEHAVIOR_IMMEDIATE;
             guint32 api_version = 0;
             if (offset < length)
                 api_version = read_int (greeter, &offset);
-            handle_connect (greeter, version, resettable, api_version);
+            handle_connect (greeter, version, finish_behavior, api_version);
         }
         break;
     case GREETER_MESSAGE_AUTHENTICATE:
@@ -1044,12 +1046,12 @@ greeter_take_authentication_session (Greeter *greeter)
     return session;
 }
 
-gboolean
-greeter_get_resettable (Greeter *greeter)
+FinishBehavior
+greeter_get_finish_behavior (Greeter *greeter)
 {
     GreeterPrivate *priv = greeter_get_instance_private (greeter);
     g_return_val_if_fail (greeter != NULL, FALSE);
-    return priv->resettable;
+    return priv->finish_behavior;
 }
 
 gboolean

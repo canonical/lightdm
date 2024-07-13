@@ -53,6 +53,12 @@ public:
         MessageTypeError
     };
 
+    enum FinishBehavior {
+        BehaviorImmediate,
+        BehaviorResettable,
+        BehaviorGraceful
+    };
+
     explicit Greeter(QObject* parent=0);
     virtual ~Greeter();
 
@@ -93,6 +99,7 @@ public Q_SLOTS:
     void cancelAutologin();
     void setLanguage (const QString &language);
     void setResettable (bool resettable);
+    void setFinishBehavior (QLightDM::Greeter::FinishBehavior finishBehavior);
     bool startSessionSync(const QString &session=QString());
     QString ensureSharedDataDirSync(const QString &username);
 

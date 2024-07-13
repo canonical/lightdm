@@ -15,9 +15,11 @@
 
 #include "seat.h"
 #include "configuration.h"
+#include "greeter.h"
 #include "guest-account.h"
 #include "greeter-session.h"
 #include "session-config.h"
+#include "session.h"
 
 enum {
     SESSION_ADDED,
@@ -267,7 +269,8 @@ seat_set_active_session (Seat *seat, Session *session)
         if (IS_GREETER_SESSION (s))
         {
             Greeter *greeter = greeter_session_get_greeter (GREETER_SESSION (s));
-            if (greeter_get_resettable (greeter))
+            FinishBehavior finish_behavior = greeter_get_finish_behavior(greeter);
+            if (finish_behavior == BEHAVIOR_RESETTABLE)
             {
                 if (priv->active_session == s)
                 {
@@ -563,7 +566,7 @@ find_resettable_greeter (Seat *seat)
     {
         Session *session = link->data;
         if (!session_get_is_stopping (session) && IS_GREETER_SESSION (session) &&
-            greeter_get_resettable (greeter_session_get_greeter (GREETER_SESSION (session))))
+            greeter_get_finish_behavior (greeter_session_get_greeter (GREETER_SESSION (session))) == BEHAVIOR_RESETTABLE)
             return GREETER_SESSION (session);
     }
 
@@ -1128,6 +1131,18 @@ greeter_create_session_cb (Greeter *greeter, Seat *seat)
     return g_object_ref (session);
 }
 
+static void
+greeter_grace_timeout_cb (gpointer data)
+{
+    Session *session = data;
+
+    if (!session_get_is_started(session))
+        return;
+
+    l_debug (session, "Greeter timed out");
+    session_stop (session);
+}
+
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
@@ -1214,7 +1229,7 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
     {
         DisplayServer *display_server = session_get_display_server (greeter_session);
         if (display_server &&
-            !greeter_get_resettable (greeter) &&
+            greeter_get_finish_behavior (greeter) != BEHAVIOR_RESETTABLE &&
             can_share_display_server (seat, display_server) &&
             strcmp (display_server_get_session_type (display_server), session_get_session_type (session)) == 0)
         {
@@ -1223,8 +1238,22 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
             /* Run on the same display server after the greeter has stopped */
             session_set_display_server (session, display_server);
 
-            /* Stop the greeter */
-            session_stop (greeter_session);
+            FinishBehavior finish_behavior = greeter_get_finish_behavior(greeter);
+            if (finish_behavior == BEHAVIOR_GRACEFUL)
+            {
+                l_debug (seat, "Waiting for greeter to terminate");
+                int timeout = seat_get_integer_property (seat, "greeter-grace-timeout");
+                if (timeout > 0) {
+                    g_timeout_add_seconds_once(timeout, greeter_grace_timeout_cb, greeter_session);
+                }
+
+                session_wait_for_finish(greeter_session);
+            }
+            else
+            {
+                /* Stop the greeter */
+                session_stop (greeter_session);
+            }
 
             return TRUE;
         }

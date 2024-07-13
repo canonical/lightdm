@@ -11,6 +11,7 @@
 
 
 #include "QLightDM/greeter.h"
+#include "lightdm/greeter.h"
 
 #include <QtCore/QDebug>
 #include <QtCore/QDir>
@@ -200,6 +201,29 @@ void Greeter::setResettable (bool resettable)
 {
     Q_D(Greeter);
     lightdm_greeter_set_resettable(d->ldmGreeter, resettable);
+}
+
+void Greeter::setFinishBehavior (QLightDM::Greeter::FinishBehavior finishBehavior)
+{
+    Q_D(Greeter);
+    LightDMGreeterFinishBehavior behavior;
+
+    switch (finishBehavior)
+    {
+    case BehaviorResettable:
+        behavior = LIGHTDM_GREETER_FINISH_BEHAVIOR_RESETTABLE;
+        break;
+    case BehaviorGraceful:
+        behavior = LIGHTDM_GREETER_FINISH_BEHAVIOR_GRACEFUL;
+        break;
+      break;
+    case BehaviorImmediate:
+    default:
+        behavior = LIGHTDM_GREETER_FINISH_BEHAVIOR_IMMEDIATE;
+        break;
+    }
+
+    lightdm_greeter_set_finish_behavior(d->ldmGreeter, behavior);
 }
 
 bool Greeter::startSessionSync(const QString &session)
