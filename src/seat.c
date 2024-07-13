@@ -1131,6 +1131,18 @@ greeter_create_session_cb (Greeter *greeter, Seat *seat)
     return g_object_ref (session);
 }
 
+static void
+greeter_grace_timeout_cb (gpointer data)
+{
+    Session *session = data;
+
+    if (!session_get_is_started(session))
+        return;
+
+    l_debug (session, "Greeter timed out");
+    session_stop (session);
+}
+
 static gboolean
 greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *session_name, Seat *seat)
 {
@@ -1230,6 +1242,12 @@ greeter_start_session_cb (Greeter *greeter, SessionType type, const gchar *sessi
             if (finish_behavior == BEHAVIOR_GRACEFUL)
             {
                 l_debug (seat, "Waiting for greeter to terminate");
+                int timeout = seat_get_integer_property (seat, "greeter-grace-timeout");
+                if (timeout > 0) {
+                    g_timeout_add_seconds_once(timeout, greeter_grace_timeout_cb, greeter_session);
+                }
+
+                session_wait_for_finish(greeter_session);
             }
             else
             {

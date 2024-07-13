@@ -371,6 +371,7 @@ config_init (Configuration *config)
     g_hash_table_insert (config->priv->seat_keys, "greeter-allow-guest", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "greeter-show-manual-login", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "greeter-show-remote-login", GINT_TO_POINTER (KEY_SUPPORTED));
+    g_hash_table_insert (config->priv->seat_keys, "greeter-grace-timeout", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "user-session", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "allow-user-switching", GINT_TO_POINTER (KEY_SUPPORTED));
     g_hash_table_insert (config->priv->seat_keys, "allow-guest", GINT_TO_POINTER (KEY_SUPPORTED));
