@@ -40,6 +40,10 @@ if COMPILE_LIBLIGHTDM_QT5
 noinst_PROGRAMS += test-qt5-greeter
 endif
 
+if COMPILE_LIBLIGHTDM_QT6
+noinst_PROGRAMS += test-qt6-greeter
+endif
+
 dbus_env_CFLAGS = \
 	$(WARN_CFLAGS) \
 	$(GLIB_CFLAGS) \
@@ -139,23 +143,32 @@ test_script_hook_LDADD = \
 
 test-qt5-greeter_moc5.cpp: test-qt-greeter.h
 	$(am__v_MOC5_$(V)) $(MOC5) $< -o $@
+test-qt6-greeter_moc6.cpp: test-qt-greeter.h
+	$(MOC6) $< -o $@
 common_qt_sources = test-qt-greeter.cpp test-qt-greeter.h status.c status.h
 test_qt5_greeter_SOURCES = $(common_qt_sources)
+test_qt6_greeter_SOURCES = $(common_qt_sources)
 nodist_test_qt5_greeter_SOURCES = test-qt5-greeter_moc5.cpp
+nodist_test_qt6_greeter_SOURCES = test-qt6-greeter_moc6.cpp
 common_qt_cflags = \
 	$(WARN_CXXFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(GIO_UNIX_CFLAGS) \
 	$(XCB_CFLAGS)
 test_qt5_greeter_CFLAGS = $(common_qt_cflags)
+test_qt6_greeter_CFLAGS = $(common_qt_cflags)
 common_qt_cxxflags = \
 	-fPIC \
-	-DQT_DISABLE_DEPRECATED_BEFORE="QT_VERSION_CHECK(4, 0, 0)" \
 	-I$(top_srcdir)/liblightdm-qt \
 	$(GLIB_CFLAGS)
 test_qt5_greeter_CXXFLAGS = \
 	$(common_qt_cxxflags) \
+	-DQT_DISABLE_DEPRECATED_BEFORE="QT_VERSION_CHECK(4, 0, 0)" \
 	$(LIBLIGHTDM_QT5_CFLAGS)
+test_qt6_greeter_CXXFLAGS = \
+	$(common_qt_cxxflags) \
+	-DQT_DISABLE_DEPRECATED_BEFORE="QT_VERSION_CHECK(5, 0, 0)" \
+	$(LIBLIGHTDM_QT6_CFLAGS)
 common_qt_ldadd = \
 	-L$(top_builddir)/liblightdm-gobject \
 	-llightdm-gobject-1 \
@@ -167,6 +180,10 @@ test_qt5_greeter_LDADD = \
 	$(common_qt_ldadd) \
 	-llightdm-qt5-3 \
 	$(LIBLIGHTDM_QT5_LIBS)
+test_qt6_greeter_LDADD = \
+	$(common_qt_ldadd) \
+	-llightdm-qt6-3 \
+	$(LIBLIGHTDM_QT6_LIBS)
 
 test_session_SOURCES = test-session.c status.c status.h
 test_session_CFLAGS = \
@@ -212,7 +229,8 @@ vnc_client_LDADD = \
 	$(GIO_UNIX_LIBS)
 
 CLEANFILES = \
-	test-qt5-greeter_moc5.cpp
+	test-qt5-greeter_moc5.cpp \
+	test-qt6-greeter_moc6.cpp
 
 # Support pretty printing MOC
 AM_V_MOC5 = $(am__v_MOC5_$(V))
