@@ -1,0 +1,2 @@
+#!/bin/sh
+./src/dbus-env ./src/test-runner login-two-factor test-qt6-greeter

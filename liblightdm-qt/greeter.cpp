@@ -328,8 +328,8 @@ QString Greeter::motd() const
     return QString::fromUtf8(lightdm_get_motd());
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-#include "greeter_moc5.cpp"
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include "greeter_moc6.cpp"
 #else
-#include "greeter_moc4.cpp"
+#include "greeter_moc5.cpp"
 #endif

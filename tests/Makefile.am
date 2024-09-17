@@ -336,6 +336,42 @@ TESTS += \
 	test-power-qt5
 endif
 
+if COMPILE_LIBLIGHTDM_QT6
+TESTS += \
+	test-autologin-timeout-qt6 \
+	test-autologin-guest-timeout-qt6 \
+	test-autologin-session-timeout-qt6 \
+	test-cancel-authentication-qt6 \
+	test-login-qt6 \
+	test-login-manual-qt6 \
+	test-login-manual-previous-session-qt6 \
+	test-login-no-password-qt6 \
+	test-login-long-username-qt6 \
+	test-login-long-password-qt6 \
+	test-login-two-factor-qt6 \
+	test-login-new-authtok-qt6 \
+	test-login-info-prompt-qt6 \
+	test-login-multi-info-prompt-qt6 \
+	test-login-previous-session-qt6 \
+	test-login-wrong-password-qt6 \
+	test-login-invalid-user-qt6 \
+	test-login-invalid-session-qt6 \
+	test-login-logout-qt6 \
+	test-login-pick-session-qt6 \
+	test-login-remember-session-qt6 \
+	test-login-manual-remember-session-qt6 \
+	test-login-guest-qt6 \
+	test-login-guest-pick-session-qt6 \
+	test-login-guest-disabled-qt6 \
+	test-login-guest-no-setup-script-qt6 \
+	test-login-guest-fail-setup-script-qt6 \
+	test-login-guest-logout-qt6 \
+	test-login-remote-session-qt6 \
+	test-sessions-qt6 \
+	test-users-qt6 \
+	test-power-qt6
+endif
+
 EXTRA_DIST = \
 	$(TESTS) \
 	data/remote-sessions/test-remote.desktop \
@@ -345,6 +381,7 @@ EXTRA_DIST = \
 	data/greeters/test-mir-greeter.desktop \
 	data/greeters/test-python-greeter.desktop \
 	data/greeters/test-qt5-greeter.desktop \
+	data/greeters/test-qt6-greeter.desktop \
 	data/greeters/test-wayland-greeter.desktop \
 	data/keys.conf \
 	data/sessions/alternative.desktop \
