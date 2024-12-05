@@ -402,7 +402,7 @@ poll_for_socket_cb (XServerLocal *server)
     /* Check is X11 socket file exists as an alternative startup test to SIGUSR1 */
     GStatBuf statbuf;
     g_autofree gchar *socketpath = g_strdup_printf ("/tmp/.X11-unix/X%d", priv->display_number);
-    if ( g_stat (socketpath, &statbuf) == 0 )
+    if (g_stat (socketpath, &statbuf) == 0)
     {
         uid_t uid = priv->user ? user_get_uid(priv->user) : 0;
 
