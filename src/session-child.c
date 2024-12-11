@@ -398,10 +398,14 @@ session_child_run (int argc, char **argv)
         {
             /* Set POSIX variables */
             pam_putenv (pam_handle, "PATH=/usr/local/bin:/usr/bin:/bin");
-            pam_putenv (pam_handle, g_strdup_printf ("USER=%s", username));
-            pam_putenv (pam_handle, g_strdup_printf ("LOGNAME=%s", username));
-            pam_putenv (pam_handle, g_strdup_printf ("HOME=%s", user_get_home_directory (user)));
-            pam_putenv (pam_handle, g_strdup_printf ("SHELL=%s", user_get_shell (user)));
+            g_autofree gchar* user_env = g_strdup_printf ("USER=%s", username);
+            pam_putenv (pam_handle, user_env);
+            g_autofree gchar* logname_env = g_strdup_printf ("LOGNAME=%s", username);
+            pam_putenv (pam_handle, logname_env);
+            g_autofree gchar* home_env = g_strdup_printf ("HOME=%s",user_get_home_directory (user));
+            pam_putenv (pam_handle, home_env);
+            g_autofree gchar* shell_env = g_strdup_printf ("SHELL=%s", user_get_shell (user));
+            pam_putenv (pam_handle, shell_env);
 
             /* Let the greeter and user session inherit the system default locale */
             static const gchar * const locale_var_names[] = {
