@@ -15,6 +15,7 @@
 #include <glib-object.h>
 
 #include "log-file.h"
+#include "accounts.h"
 
 G_BEGIN_DECLS
 
@@ -63,6 +64,8 @@ const gchar *process_get_env (Process *process, const gchar *name);
 void process_set_command (Process *process, const gchar *command);
 
 const gchar *process_get_command (Process *process);
+
+void process_set_user (Process *process, User *user);
 
 gboolean process_start (Process *process, gboolean block);
 
