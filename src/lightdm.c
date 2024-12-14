@@ -551,6 +551,13 @@ login1_service_seat_removed_cb (Login1Service *service, Login1Seat *login1_seat)
     remove_login1_seat (login1_seat);
 }
 
+static void
+login1_service_seat_attention_key_cb (Login1Service *service, Login1Seat *login1_seat)
+{
+   Seat *seat = display_manager_get_seat (display_manager, login1_seat_get_id (login1_seat));
+   seat_switch_to_greeter (seat);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -891,6 +898,7 @@ main (int argc, char **argv)
         {
             g_signal_connect (login1_service_get_instance (), LOGIN1_SERVICE_SIGNAL_SEAT_ADDED, G_CALLBACK (login1_service_seat_added_cb), NULL);
             g_signal_connect (login1_service_get_instance (), LOGIN1_SERVICE_SIGNAL_SEAT_REMOVED, G_CALLBACK (login1_service_seat_removed_cb), NULL);
+            g_signal_connect (login1_service_get_instance (), LOGIN1_SERVICE_SIGNAL_SEAT_ATTENTION_KEY, G_CALLBACK (login1_service_seat_attention_key_cb), NULL);
 
             for (GList *link = login1_service_get_seats (login1_service_get_instance ()); link; link = link->next)
             {
