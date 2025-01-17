@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <glib.h>
 #include <glib/gstdio.h>
 #include <grp.h>
 #include <pwd.h>
@@ -995,12 +996,41 @@ session_get_is_stopping (Session *session)
     return priv->stopping;
 }
 
+static gboolean
+expand_cb (const GMatchInfo *info, GString *result, gpointer data)
+{
+    gchar *match;
+    const gchar *env_text;
+
+    match = g_match_info_fetch (info, 1);
+    env_text = g_getenv (match);
+    if (env_text)
+    {
+        g_string_append (result, env_text);
+    };
+    g_free (match);
+
+    return FALSE;
+}
+
+static gchar *
+expand_environment (const gchar *text)
+{
+    GRegex *pattern;
+    gchar *result;
+
+    pattern = g_regex_new("\\$(?|\\{([a-zA-Z_][a-zA-Z_0-9]*)\\}|([a-zA-Z_][a-zA-Z_0-9]*))", G_REGEX_RAW, G_REGEX_MATCH_DEFAULT, NULL);
+    result = g_regex_replace_eval (pattern, text, -1, 0, 0, expand_cb, NULL, NULL);
+
+    return result;
+}
+
 static void
 session_init (Session *session)
 {
     SessionPrivate *priv = session_get_instance_private (session);
 
-    priv->log_filename = g_strdup (".xsession-errors");
+    priv->log_filename = expand_environment (config_get_string (config_get_instance(), "LightDM", "xsession-errors-path"));
     priv->log_mode = LOG_MODE_BACKUP_AND_TRUNCATE;
     priv->to_child_input = -1;
     priv->from_child_output = -1;
