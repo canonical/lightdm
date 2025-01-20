@@ -121,6 +121,35 @@ if test x"$enable_liblightdm_qt5" != "xno"; then
 fi
 AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT5, test x"$compile_liblightdm_qt5" != "xno")
 
+AC_ARG_ENABLE(liblightdm-qt6,
+	AS_HELP_STRING([--enable-liblightdm-qt6],[Enable LightDM client Qt6 libraries [[default=auto]]]),
+	[enable_liblightdm_qt6=$enableval],
+	[enable_liblightdm_qt6="auto"])
+compile_liblightdm_qt6=no
+if test x"$enable_liblightdm_qt6" != "xno"; then
+    PKG_CHECK_MODULES(LIBLIGHTDM_QT6, [
+        Qt6Core
+        Qt6DBus
+        Qt6Gui
+    ],
+    [compile_liblightdm_qt6=yes],
+    [if test "x$enable_liblightdm_qt6" != xauto; then
+        AC_MSG_FAILURE(
+          [--enable-liblightdm-qt6 was given, but test for Qt6 failed])
+      fi
+    ])
+
+    QT6_VALIDATE_MOC(MOC6)
+    if test x$MOC6 = x; then
+        compile_liblightdm_qt6=no
+        if test "x$enable_liblightdm_qt6" != xauto; then
+            AC_MSG_FAILURE(
+              [--enable-liblightdm-qt6 was given, but MOC not found])
+        fi
+    fi
+fi
+AM_CONDITIONAL(COMPILE_LIBLIGHTDM_QT6, test x"$compile_liblightdm_qt6" != "xno")
+
 AC_ARG_ENABLE([libaudit],
     AS_HELP_STRING([--enable-libaudit],
                    [Enable libaudit logging of login and logout events [[default=auto]]]),
@@ -212,6 +241,7 @@ liblightdm-gobject/liblightdm-gobject-1.pc
 liblightdm-gobject/Makefile
 liblightdm-qt/Makefile
 liblightdm-qt/liblightdm-qt5-3.pc
+liblightdm-qt/liblightdm-qt6-3.pc
 po/Makefile.in
 src/Makefile
 tests/Makefile
@@ -237,6 +267,7 @@ echo "
         GObject introspection:    $found_introspection
         Vala bindings:            $enable_vala
         liblightdm-qt5:           $compile_liblightdm_qt5
+        liblightdm-qt6:           $compile_liblightdm_qt6
         libaudit support:         $use_libaudit
         Enable tests:             $enable_tests
 "

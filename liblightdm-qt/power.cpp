@@ -78,8 +78,8 @@ bool PowerInterface::restart()
     return lightdm_restart (NULL);
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-#include "power_moc5.cpp"
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include "power_moc6.cpp"
 #else
-#include "power_moc4.cpp"
+#include "power_moc5.cpp"
 #endif
