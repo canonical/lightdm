@@ -19,6 +19,7 @@
 #include "configuration.h"
 #include "seat-local.h"
 #include "seat-xremote.h"
+#include "seat-wayland-system-compositor.h"
 #include "plymouth.h"
 
 enum {
@@ -166,6 +167,7 @@ display_manager_init (DisplayManager *manager)
     /* Load the seat modules */
     seat_register_module ("local", SEAT_LOCAL_TYPE);
     seat_register_module ("xremote", SEAT_XREMOTE_TYPE);
+    seat_register_module ("wayland-system-compositor", SEAT_WAYLAND_SYSTEM_COMPOSITOR_TYPE);
 }
 
 static void
