@@ -263,8 +263,8 @@ QVariant UsersModel::data(const QModelIndex &index, int role) const
 }
 
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-#include "usersmodel_moc5.cpp"
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include "usersmodel_moc6.cpp"
 #else
-#include "usersmodel_moc4.cpp"
+#include "usersmodel_moc5.cpp"
 #endif

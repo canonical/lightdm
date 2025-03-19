@@ -34,12 +34,12 @@ TestGreeter::TestGreeter ()
 
 void TestGreeter::showMessage (QString text, QLightDM::Greeter::MessageType type)
 {
-    status_notify ("%s SHOW-MESSAGE TEXT=\"%s\"", greeter_id, text.toAscii ().constData ());
+    status_notify ("%s SHOW-MESSAGE TEXT=\"%s\"", greeter_id, text.toLatin1 ().constData ());
 }
 
 void TestGreeter::showPrompt (QString text, QLightDM::Greeter::PromptType type)
 {
-    status_notify ("%s SHOW-PROMPT TEXT=\"%s\"", greeter_id, text.toAscii ().constData ());
+    status_notify ("%s SHOW-PROMPT TEXT=\"%s\"", greeter_id, text.toLatin1 ().constData ());
 }
 
 void TestGreeter::authenticationComplete ()
@@ -47,7 +47,7 @@ void TestGreeter::authenticationComplete ()
     if (authenticationUser () != "")
         status_notify ("%s AUTHENTICATION-COMPLETE USERNAME=%s AUTHENTICATED=%s",
                        greeter_id,
-                       authenticationUser ().toAscii ().constData (), isAuthenticated () ? "TRUE" : "FALSE");
+                       authenticationUser ().toLatin1 ().constData (), isAuthenticated () ? "TRUE" : "FALSE");
     else
         status_notify ("%s AUTHENTICATION-COMPLETE AUTHENTICATED=%s", greeter_id, isAuthenticated () ? "TRUE" : "FALSE");
 }
@@ -59,7 +59,7 @@ void TestGreeter::autologinTimerExpired ()
 void TestGreeter::printHints ()
 {
     if (selectUserHint() != "")
-        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toAscii ().constData ());
+        status_notify ("%s SELECT-USER-HINT USERNAME=%s", greeter_id, greeter->selectUserHint ().toLatin1 ().constData ());
     if (selectGuestHint())
         status_notify ("%s SELECT-GUEST-HINT", greeter_id);
     if (lockHint())
@@ -73,11 +73,11 @@ void TestGreeter::printHints ()
     if (!showRemoteLoginHint ())
         status_notify ("%s SHOW-REMOTE-LOGIN-HINT=FALSE", greeter_id);
     if (autologinUserHint () != "")
-        status_notify ("%s AUTOLOGIN-USER-HINT=%s", greeter_id, autologinUserHint ().toAscii ().constData ());
+        status_notify ("%s AUTOLOGIN-USER-HINT=%s", greeter_id, autologinUserHint ().toLatin1 ().constData ());
     if (autologinGuestHint ())
         status_notify ("%s AUTOLOGIN-GUEST-HINT", greeter_id);
     if (autologinSessionHint () != "")
-        status_notify ("%s AUTOLOGIN-SESSION-HINT=%s", greeter_id, autologinSessionHint ().toAscii ().constData ());
+        status_notify ("%s AUTOLOGIN-SESSION-HINT=%s", greeter_id, autologinSessionHint ().toLatin1 ().constData ());
     if (autologinTimeoutHint () != 0)
         status_notify ("%s AUTOLOGIN-TIMEOUT-HINT=%d", greeter_id, autologinTimeoutHint ());
 }
