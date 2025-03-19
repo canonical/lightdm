@@ -18,6 +18,7 @@
   /usr/bin/sogou-qimpanel-watchdog ix,
   /usr/bin/sogou-sys-notify ix,
   /tmp/sogou-qimpanel:* rwl,
+  /run/user/*/ICEauthority-l l,
 
   # Allow ibus
   unix (bind, listen) type=stream addr="@tmp/ibus/*",
