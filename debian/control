@@ -23,7 +23,7 @@ Build-Depends: autoconf,
                libxdmcp-dev,
                libxklavier-dev,
                pkg-config,
-               qtbase5-dev,
+               qt6-base-dev,
                quilt,
                valac,
                yelp-tools
@@ -77,7 +77,7 @@ Depends: ${misc:Depends},
 Description: Typelib file for liblightdm-1
  A GObject based library for LightDM clients to use to interface with LightDM.
 
-Package: liblightdm-qt5-3-0
+Package: liblightdm-qt6-3-0
 Section: libs
 Architecture: any
 Multi-Arch: same
@@ -85,8 +85,8 @@ Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
          ${shlibs:Depends},
 Recommends: lightdm,
-Description: LightDM Qt 5 client library
- A Qt 5 based library for LightDM clients to use to interface with LightDM.
+Description: LightDM Qt 6 client library
+ A Qt 6 based library for LightDM clients to use to interface with LightDM.
 
 Package: liblightdm-gobject-1-dev
 Section: libdevel
@@ -104,15 +104,15 @@ Description: LightDM GObject client library (development files)
  This package contains header files and development information, which
  is useful for building LightDM greeters and user switchers.
 
-Package: liblightdm-qt5-3-dev
+Package: liblightdm-qt6-3-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
 Depends: ${misc:Depends},
-         liblightdm-qt5-3-0 (= ${binary:Version}),
-         qtbase5-dev,
-Description: LightDM Qt 5 client library (development files)
- A Qt 5 based library for LightDM clients to use to interface with LightDM.
+         liblightdm-qt6-3-0 (= ${binary:Version}),
+         qt6-base-dev,
+Description: LightDM Qt 6 client library (development files)
+ A Qt 6 based library for LightDM clients to use to interface with LightDM.
  .
  This package contains header files and development information, which
  is useful for building LightDM greeters and user switchers.
