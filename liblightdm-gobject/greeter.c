@@ -121,8 +121,8 @@ typedef struct
     /* API version the daemon is using */
     guint32 api_version;
 
-    /* TRUE if the daemon can reuse this greeter */
-    gboolean resettable;
+    /* Defines the finish behavior for the greeter; either to be resettable, killed immediately or terminated gracefully */
+    LightDMGreeterFinishBehavior finish_behavior;
 
     /* Socket connection to daemon */
     GSocket *socket;
@@ -297,6 +297,7 @@ lightdm_greeter_new (void)
  * @resettable: Whether the greeter wants to be reset instead of killed after the user logs in
  *
  * Set whether the greeter will be reset instead of killed after the user logs in.
+ * Use lightdm_greeter_set_finish_behavior to set more behaviors after logged in.
  * This must be called before lightdm_greeter_connect is called.
  **/
 void
@@ -307,7 +308,26 @@ lightdm_greeter_set_resettable (LightDMGreeter *greeter, gboolean resettable)
     LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     g_return_if_fail (!priv->connected);
-    priv->resettable = resettable;
+    priv->finish_behavior = resettable ? LIGHTDM_GREETER_FINISH_BEHAVIOR_RESETTABLE : LIGHTDM_GREETER_FINISH_BEHAVIOR_IMMEDIATE;
+}
+
+/**
+ * lightdm_greeter_set_finish_behavior:
+ * @greeter: A #LightDMGreeter
+ * @finish_behavior: The finish behavior of the greeter when the user logs in
+ *
+ * Set whether the greeter will be reset, killed immediately or terminated gracefully.
+ * This must be called before lightdm_greeter_connect is called.
+ **/
+void
+lightdm_greeter_set_finish_behavior (LightDMGreeter *greeter, LightDMGreeterFinishBehavior finish_behavior)
+{
+    g_return_if_fail (LIGHTDM_IS_GREETER (greeter));
+
+    LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
+
+    g_return_if_fail (!priv->connected);
+    priv->finish_behavior = finish_behavior;
 }
 
 static Request *
@@ -921,14 +941,14 @@ from_server_cb (GIOChannel *source, GIOCondition condition, gpointer data)
 }
 
 static gboolean
-send_connect (LightDMGreeter *greeter, gboolean resettable, GError **error)
+send_connect (LightDMGreeter *greeter, LightDMGreeterFinishBehavior finish_behavior, GError **error)
 {
     g_debug ("Connecting to display manager...");
     guint8 message[MAX_MESSAGE_LENGTH];
     gsize offset = 0;
     return write_header (message, MAX_MESSAGE_LENGTH, GREETER_MESSAGE_CONNECT, string_length (VERSION) + int_length () * 2, &offset, error) &&
            write_string (message, MAX_MESSAGE_LENGTH, VERSION, &offset, error) &&
-           write_int (message, MAX_MESSAGE_LENGTH, resettable ? 1 : 0, &offset, error) &&
+           write_int (message, MAX_MESSAGE_LENGTH, finish_behavior, &offset, error) &&
            write_int (message, MAX_MESSAGE_LENGTH, API_VERSION, &offset, error) &&
            send_message (greeter, message, offset, error);
 }
@@ -982,7 +1002,7 @@ lightdm_greeter_connect_to_daemon (LightDMGreeter *greeter, GCancellable *cancel
 
     Request *request = request_new (greeter, cancellable, callback, user_data);
     GError *error = NULL;
-    if (send_connect (greeter, priv->resettable, &error))
+    if (send_connect (greeter, priv->finish_behavior, &error))
         priv->connect_requests = g_list_append (priv->connect_requests, request);
     else
     {
@@ -1030,7 +1050,7 @@ lightdm_greeter_connect_to_daemon_sync (LightDMGreeter *greeter, GError **error)
     LightDMGreeterPrivate *priv = lightdm_greeter_get_instance_private (greeter);
 
     /* Read until we are connected */
-    if (!send_connect (greeter, priv->resettable, error))
+    if (!send_connect (greeter, priv->finish_behavior, error))
         return FALSE;
     Request *request = request_new (greeter, NULL, NULL, NULL);
     priv->connect_requests = g_list_append (priv->connect_requests, g_object_ref (request));

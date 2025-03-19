@@ -114,6 +114,19 @@ typedef enum
     LIGHTDM_GREETER_ERROR_INVALID_USER
 } LightDMGreeterError;
 
+/**
+ * LightDMGreeterFinishBehavior:
+ * @LIGHTDM_GREETER_FINISH_BEHAVIOR_IMMEDIATE: greeter is killed immediately.
+ * @LIGHTDM_GREETER_FINISH_BEHAVIOR_RESETTABLE: greeter can be reset.
+ * @LIGHTDM_GREETER_FINISH_BEHAVIOR_GRACEFUL: greeter is terminated gracefully.
+ */
+typedef enum
+{
+    LIGHTDM_GREETER_FINISH_BEHAVIOR_IMMEDIATE,
+    LIGHTDM_GREETER_FINISH_BEHAVIOR_RESETTABLE,
+    LIGHTDM_GREETER_FINISH_BEHAVIOR_GRACEFUL,
+} LightDMGreeterFinishBehavior;
+
 GQuark lightdm_greeter_error_quark (void);
 
 GType lightdm_greeter_error_get_type (void);
@@ -123,6 +136,8 @@ GType lightdm_greeter_get_type (void);
 LightDMGreeter *lightdm_greeter_new (void);
 
 void lightdm_greeter_set_resettable (LightDMGreeter *greeter, gboolean resettable);
+
+void lightdm_greeter_set_finish_behavior (LightDMGreeter *greeter, LightDMGreeterFinishBehavior finish_behavior);
 
 void lightdm_greeter_connect_to_daemon (LightDMGreeter *greeter, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 
