@@ -19,6 +19,7 @@
 
 #include "x-server-local.h"
 #include "configuration.h"
+#include "accounts.h"
 #include "process.h"
 #include "vt.h"
 
@@ -29,6 +30,9 @@ typedef struct
 
     /* Command to run the X server */
     gchar *command;
+
+    /* Optional user to drop privileges (switch) to */
+    User *user;
 
     /* Display number to use */
     guint display_number;
@@ -59,6 +63,9 @@ typedef struct
 
     /* TRUE when received ready signal */
     gboolean got_signal;
+
+    /* Poll source ID (fallback for signal if uids differ) */
+    guint poll_for_socket_source;
 
     /* VT to run on */
     gint vt;
@@ -192,6 +199,16 @@ x_server_local_set_command (XServerLocal *server, const gchar *command)
     g_return_if_fail (server != NULL);
     g_free (priv->command);
     priv->command = g_strdup (command);
+}
+
+void
+x_server_local_set_user(XServerLocal *server, User *user)
+{
+    XServerLocalPrivate *priv = x_server_local_get_instance_private (server);
+    g_return_if_fail (server != NULL);
+    g_return_if_fail (user != NULL);
+    g_clear_object (&priv->user);
+    priv->user = g_object_ref(user);
 }
 
 void
@@ -377,6 +394,46 @@ got_signal_cb (Process *process, int signum, XServerLocal *server)
     }
 }
 
+static gboolean
+poll_for_socket_cb (XServerLocal *server)
+{
+    XServerLocalPrivate *priv = x_server_local_get_instance_private (server);
+
+    /* Check is X11 socket file exists as an alternative startup test to SIGUSR1 */
+    GStatBuf statbuf;
+    g_autofree gchar *socketpath = g_strdup_printf ("/tmp/.X11-unix/X%d", priv->display_number);
+    if ( g_stat (socketpath, &statbuf) == 0 )
+    {
+        uid_t uid = priv->user ? user_get_uid(priv->user) : 0;
+
+        /* It has to be a valid socket file */
+        if (!(statbuf.st_mode & S_IFSOCK))
+        {
+            l_debug (server, "X11 socket file is not a socket: %s", socketpath);
+            return G_SOURCE_REMOVE;
+        }
+
+        /* It has to be owned by the correct user */
+        if (statbuf.st_uid != uid)
+        {
+            l_debug (server, "X11 socket file is not owned by uid %d: %s", uid, socketpath);
+            return G_SOURCE_REMOVE;
+        }
+
+        /* Consider SIGUSR1 to have been recieved */
+        priv->got_signal = TRUE;
+        l_debug (server, "Detected valid X11 socket for X server :%d", priv->display_number);
+
+        // FIXME: Check return value
+        DISPLAY_SERVER_CLASS (x_server_local_parent_class)->start (DISPLAY_SERVER (server));
+
+        return G_SOURCE_REMOVE;
+    }
+
+    /* Wait another second and check again */
+    return G_SOURCE_CONTINUE;
+}
+
 static void
 stopped_cb (Process *process, XServerLocal *server)
 {
@@ -411,19 +468,19 @@ write_authority_file (XServerLocal *server)
     XServerLocalPrivate *priv = x_server_local_get_instance_private (server);
 
     XAuthority *authority = x_server_get_authority (X_SERVER (server));
-    if (!authority)
-        return;
+    g_return_if_fail (authority != NULL);
 
     /* Get file to write to if have authority */
-    if (!priv->authority_file)
+    if (priv->authority_file == NULL)
     {
-        g_autofree gchar *run_dir = NULL;
-        g_autofree gchar *dir = NULL;
+        g_autofree gchar *run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
+        g_autofree gchar *dir = g_build_filename (run_dir, priv->user ? user_get_name (priv->user) : "root", NULL);
 
-        run_dir = config_get_string (config_get_instance (), "LightDM", "run-directory");
-        dir = g_build_filename (run_dir, "root", NULL);
         if (g_mkdir_with_parents (dir, S_IRWXU) < 0)
             l_warning (server, "Failed to make authority directory %s: %s", dir, strerror (errno));
+        if (priv->user != NULL && getuid () == 0)
+            if (chown (dir, user_get_uid (priv->user), user_get_gid (priv->user)) < 0)
+                l_warning (server, "Failed to set ownership of x-server authority dir: %s", strerror (errno));
 
         priv->authority_file = g_build_filename (dir, x_server_get_address (X_SERVER (server)), NULL);
     }
@@ -434,6 +491,9 @@ write_authority_file (XServerLocal *server)
     x_authority_write (authority, XAUTH_WRITE_MODE_REPLACE, priv->authority_file, &error);
     if (error)
         l_warning (server, "Failed to write authority: %s", error->message);
+    if (priv->user != NULL && getuid () == 0)
+      if (chown (priv->authority_file, user_get_uid (priv->user), user_get_gid (priv->user)) < 0)
+            l_warning (server, "Failed to set ownership of authority: %s", strerror (errno));
 }
 
 static gboolean
@@ -451,7 +511,10 @@ x_server_local_start (DisplayServer *display_server)
     ProcessRunFunc run_cb = X_SERVER_LOCAL_GET_CLASS (server)->get_run_function (server);
     priv->x_server_process = process_new (run_cb, server);
     process_set_clear_environment (priv->x_server_process, TRUE);
-    g_signal_connect (priv->x_server_process, PROCESS_SIGNAL_GOT_SIGNAL, G_CALLBACK (got_signal_cb), server);
+    if (priv->user == NULL || user_get_uid (priv->user) == getuid ())
+        g_signal_connect (priv->x_server_process, PROCESS_SIGNAL_GOT_SIGNAL, G_CALLBACK (got_signal_cb), server);
+    else if (!priv->poll_for_socket_source)
+        priv->poll_for_socket_source = g_timeout_add_seconds (1, (GSourceFunc)poll_for_socket_cb, server);
     g_signal_connect (priv->x_server_process, PROCESS_SIGNAL_STOPPED, G_CALLBACK (stopped_cb), server);
 
     /* Setup logging */
@@ -526,6 +589,8 @@ x_server_local_start (DisplayServer *display_server)
         g_string_append_printf (command, " %s", extra_options);
 
     process_set_command (priv->x_server_process, command->str);
+    if (priv->user)
+        process_set_user (priv->x_server_process, priv->user);
 
     l_debug (display_server, "Launching X Server");
 
@@ -587,8 +652,14 @@ x_server_local_finalize (GObject *object)
 
     if (priv->x_server_process)
         g_signal_handlers_disconnect_matched (priv->x_server_process, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, self);
+    if (priv->poll_for_socket_source)
+    {
+        g_source_remove (priv->poll_for_socket_source);
+        priv->poll_for_socket_source = 0;
+    }
     g_clear_object (&priv->x_server_process);
     g_clear_pointer (&priv->command, g_free);
+    g_clear_object (&priv->user);
     g_clear_pointer (&priv->config_file, g_free);
     g_clear_pointer (&priv->layout, g_free);
     g_clear_pointer (&priv->xdg_seat, g_free);
